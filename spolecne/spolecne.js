@@ -1,6 +1,6 @@
 // Společný kód pro hry: zvuky, hlas, konfety. Žádné externí služby, všechno běží v prohlížeči.
 const Hry = (() => {
-  let muted = false, actx = null, current = null, confettiRun = 0, odemceno = false;
+  let muted = false, actx = null, confettiRun = 0, odemceno = false;
   const voices = {};
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -34,13 +34,19 @@ const Hry = (() => {
     },
   };
 
-  // Nahrávky hlasu ze složky zvuky/. jmena je seznam názvů souborů bez .mp3
+  // Nahrávky hlasu ze složky zvuky/. jmena je seznam názvů souborů bez .mp3.
+  // Nic se nestahuje předem: jeden společný přehrávač načte nahrávku až ve chvíli, kdy je potřeba.
+  // (Dřív se stahovalo a "odemykalo" přes sto souborů naráz, hra se dlouho načítala a na mobilu zazněla všechna písmena najednou.)
+  const player = new Audio();
+  let slozkaHlasu = "";
   function nactiHlas(slozka, jmena) {
-    jmena.forEach(n => { const a = new Audio(slozka + n + ".mp3"); a.preload = "auto"; voices[n] = a; });
+    slozkaHlasu = slozka;
+    jmena.forEach(n => { voices[n] = slozka + n + ".mp3"; });
   }
 
   // rekni("spravne") vybere náhodně spravne1..spravne9, pokud přesný název neexistuje.
   // Vrací Promise, který skončí s koncem nahrávky.
+  let poradi = 0;
   function rekni(jmeno, { delay = 0, interrupt = true } = {}) {
     return new Promise(resolve => {
       if (muted) return resolve();
@@ -49,27 +55,27 @@ const Hry = (() => {
       if (!moznosti.length) return resolve();
       setTimeout(() => {
         if (muted) return resolve();
-        const el = voices[moznosti[(Math.random() * moznosti.length) | 0]];
-        if (interrupt && current) current.pause();
-        el.currentTime = 0; current = el;
-        el.onended = () => resolve();
-        el.play().catch(() => resolve());
+        const url = voices[moznosti[(Math.random() * moznosti.length) | 0]];
+        const moje = ++poradi;
+        player.pause();
+        player.src = url;
+        player.onended = () => { if (moje === poradi) resolve(); };
+        player.play().catch(() => { if (moje === poradi) resolve(); });
         setTimeout(resolve, 8000);
       }, delay);
     });
   }
-  function zastav() { if (current) current.pause(); }
+  function zastav() { poradi++; player.pause(); }
 
-  // Safari a mobily povolí přehrát každou nahrávku až po dotyku: odemkneme všechny naráz.
+  // Safari a mobily povolí přehrát zvuk až po dotyku: jednou odemkneme společný přehrávač tichým záznamem.
+  const TICHO = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
   function odemkni() {
     if (odemceno) return; odemceno = true;
     audio();
-    Object.values(voices).forEach(el => {
-      el.muted = true;
-      const pr = el.play();
-      const hotovo = () => { el.pause(); el.currentTime = 0; el.muted = false; };
-      if (pr && pr.then) pr.then(hotovo, () => { el.muted = false; }); else hotovo();
-    });
+    if (!player.src || player.paused) {
+      const puvodni = player.src;
+      if (!puvodni) { player.src = TICHO; const p = player.play(); if (p && p.catch) p.catch(() => {}); }
+    }
   }
   window.addEventListener("pointerdown", odemkni, { passive: true });
 

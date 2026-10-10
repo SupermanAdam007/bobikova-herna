@@ -212,7 +212,7 @@ document.querySelectorAll("#zalozky button").forEach(b => b.onclick = () => { Hr
 
 // uvítání při prvním dotyku (prohlížeč povolí zvuk až po dotyku)
 let pozdraveno = false;
-window.addEventListener("pointerdown", () => { if (pozdraveno) return; pozdraveno = true; if (rezim === "abeceda" && vybrane && vybrane.id === "a") Hry.rekni("ahoj", { delay: 600 }); });
+window.addEventListener("pointerdown", e => { if (pozdraveno) return; pozdraveno = true; if (e.target.closest && e.target.closest("button")) return; if (rezim === "abeceda" && vybrane && vybrane.id === "a") Hry.rekni("ahoj", { delay: 600 }); });
 
 sestavMrizku(); nastavRezim("abeceda");
 </script>
