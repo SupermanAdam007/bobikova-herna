@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sčítání | Bobíkova herna</title>
+<link rel="icon" type="image/png" href="../obrazky/bobik-ikona.png">
+<link rel="apple-touch-icon" href="../obrazky/bobik-ikona.png">
+<link rel="stylesheet" href="../spolecne/spolecne.css">
+<style>
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  #karta {
+    flex: 1; min-height: 0; background: #fff; color: #1f2a5a; border-radius: 16px; border: 4px solid #ffe066;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 6px; overflow: hidden; position: relative;
+  }
+  #otazkaText { font-size: min(3.6dvh, 6vw); font-weight: bold; text-align: center; }
+  #priklad { display: flex; align-items: center; justify-content: center; gap: min(2vw, 14px); }
+  .skupina { display: grid; grid-template-columns: repeat(var(--sl, 3), auto); gap: 2px; justify-content: center; font-size: var(--vel, 30px); line-height: 1.05; }
+  .cislo { font-size: min(14dvh, 22vw); font-weight: bold; line-height: 1; }
+  .znak { font-size: min(10dvh, 15vw); font-weight: bold; color: #c92a2a; line-height: 1; }
+  .diru {
+    min-width: min(14dvh, 22vw); height: min(15dvh, 24vw); border: 4px dashed #1f2a5a; border-radius: 14px; padding: 0 6px;
+    display: flex; align-items: center; justify-content: center; font-size: min(12dvh, 19vw); font-weight: bold; color: #c92a2a;
+    background: #fff3bf; animation: pulz 1.2s infinite;
+  }
+  .diru.hotovo { animation: none; border-style: solid; border-color: #2b8a3e; background: #d3f9d8; color: #1f2a5a; }
+  #moznosti { flex: none; height: 32%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .moznost {
+    border: 4px solid #fff; border-radius: 16px; font-size: min(13dvh, 20vw); font-family: inherit; line-height: 1; font-weight: bold;
+    cursor: pointer; color: #fff; background: #1864ab; box-shadow: 0 5px 0 rgba(0,0,0,.4); padding: 0;
+  }
+  .moznost:nth-child(2) { background: #c2255c; } .moznost:nth-child(3) { background: #2b8a3e; }
+  .moznost:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  .moznost.spatne { animation: zatres .4s; opacity: .35; pointer-events: none; }
+  .moznost.dobre { outline: 6px solid #ffe066; animation: pulz .5s 3; }
+  #opakuj { position: absolute; right: 8px; top: 8px; }
+</style>
+</head>
+<body>
+  <div id="top">
+    <a class="domu" href="../index.html"><img class="logo" src="../obrazky/bobik.jpg" alt=""> Herna</a>
+    <h1>➕ Sčítání</h1>
+    <span class="hvezdy" id="hvezdy"></span>
+    <button class="kulate" id="zvuk" title="Zvuk">🔊</button>
+  </div>
+
+  <div id="hlaska">Spočítej, kolik to je dohromady.</div>
+
+  <main>
+    <section id="karta">
+      <button class="kulate" id="opakuj" title="Poslechnout znovu" style="width:38px;height:38px">🔊</button>
+      <div id="otazkaText"></div>
+      <div id="priklad"></div>
+    </section>
+    <div id="moznosti"></div>
+  </main>
+
+<script src="../spolecne/spolecne.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const KOL = 10; // počet příkladů v jedné hře
+
+// Sčítance pro každé kolo: [největší první sčítanec, největší druhý sčítanec, největší součet]. Čím dál těžší.
+const OBTIZNOST = [[3, 2, 4], [3, 3, 5], [4, 3, 6], [5, 4, 8], [6, 4, 9], [6, 5, 10], [8, 6, 10], [10, 9, 14], [12, 9, 18], [12, 10, 20]];
+const OBRAZKY = ["🍎", "🐶", "⭐", "🐸", "🍓", "🚗", "🌸", "🐱"];
+
+const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "zkus1", "zkus2", "otazka1", "otazka2", "otazka3", "konec"];
+Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
+Hry.nastavTlacitkoZvuku($("zvuk"));
+
+let kolo = 0, body = 0, spravna = null, zamceno = false, chyba = false, minule = "";
+
+function hlaska(t, cls = "") { const h = $("hlaska"); h.textContent = t; h.className = cls; }
+const zamichej = pole => pole.slice().sort(() => Math.random() - .5);
+const nahodne = (od, do_) => od + Math.floor(Math.random() * (do_ - od + 1));
+
+function novaHra() {
+  kolo = 0; body = 0; minule = "";
+  $("hvezdy").textContent = "";
+  dalsiPriklad();
+}
+
+function skupina(pocet, obrazek, velikost) {
+  const g = document.createElement("div"); g.className = "skupina";
+  g.style.setProperty("--sl", Math.min(pocet, 4));
+  g.style.setProperty("--vel", velikost + "px");
+  for (let i = 0; i < pocet; i++) { const s = document.createElement("span"); s.textContent = obrazek; g.appendChild(s); }
+  return g;
+}
+
+function dalsiPriklad() {
+  if (kolo >= KOL) return konec();
+  kolo++; zamceno = false; chyba = false;
+  const [maxA, maxB, maxS] = OBTIZNOST[kolo - 1];
+  let a, b;
+  do { a = nahodne(1, maxA); b = nahodne(1, maxB); } while (a + b > maxS || a + b < 2 || a + "+" + b === minule);
+  minule = a + "+" + b;
+  spravna = a + b;
+
+  // možnosti: správná a dvě blízká špatná čísla
+  const spatne = new Set();
+  const kandidati = zamichej([-2, -1, 1, 2, 3, -3]).map(d => spravna + d).filter(n => n >= 0);
+  for (const n of kandidati) { if (spatne.size < 2) spatne.add(n); }
+
+  const p = $("priklad"); p.innerHTML = "";
+  const obrazek = OBRAZKY[nahodne(0, OBRAZKY.length - 1)];
+  const ukazObrazky = spravna <= 10;
+  const vel = Math.floor(Math.min(innerHeight * 0.075, innerWidth * 0.1));
+  const prvek = (t, c) => { const e = document.createElement("span"); e.className = c; e.textContent = t; return e; };
+  if (ukazObrazky) {
+    const kontejner = document.createElement("div");
+    kontejner.style.cssText = "display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px";
+    kontejner.append(skupina(a, obrazek, vel), prvek("+", "znak"), skupina(b, obrazek, vel));
+    $("karta").querySelector("#obrazky")?.remove();
+    kontejner.id = "obrazky";
+    $("karta").insertBefore(kontejner, p);
+  } else {
+    $("karta").querySelector("#obrazky")?.remove();
+  }
+  p.append(prvek(a, "cislo"), prvek("+", "znak"), prvek(b, "cislo"), prvek("=", "znak"));
+  const diru = prvek("?", "diru"); diru.id = "diru"; p.appendChild(diru);
+
+  const mozn = $("moznosti"); mozn.innerHTML = "";
+  zamichej([spravna, ...spatne]).forEach(e => {
+    const bt = document.createElement("button");
+    bt.className = "moznost"; bt.textContent = e;
+    bt.onclick = () => odpoved(e, bt);
+    mozn.appendChild(bt);
+  });
+  $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+  $("otazkaText").textContent = "Kolik to je dohromady? (" + kolo + "/" + KOL + ")";
+  hlaska("Spočítej, kolik to je dohromady.");
+  Hry.rekni("otazka", { delay: 250 });
+}
+$("opakuj").onclick = () => Hry.rekni("otazka");
+
+async function odpoved(e, btn) {
+  if (zamceno) return;
+  if (e === spravna) {
+    zamceno = true;
+    btn.classList.add("dobre");
+    const d = $("diru"); d.textContent = e; d.classList.add("hotovo");
+    if (!chyba) body++;
+    $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+    Hry.zvuky.spravne();
+    hlaska("✔ Správně!", "dobre");
+    await Hry.rekni("spravne", { delay: 200 });
+    await Hry.sleep(500);
+    dalsiPriklad();
+  } else {
+    chyba = true;
+    btn.classList.add("spatne");
+    Hry.zvuky.spatne();
+    hlaska("To není ono. Zkus to znovu!", "spatne");
+    Hry.rekni("zkus", { delay: 250 });
+  }
+}
+
+function konec() {
+  zamceno = true;
+  const vse = body === KOL;
+  $("priklad").innerHTML = ""; $("karta").querySelector("#obrazky")?.remove();
+  $("otazkaText").textContent = vse ? "🏆" : "🎉";
+  hlaska("Hotovo! Máš " + body + " z " + KOL + " hvězdiček. Zahraj si znovu!", "dobre");
+  Hry.zvuky.fanfara();
+  Hry.oslava(vse, vse ? "🏆 Bezchybně! 🏆" : "🎉 Hotovo! 🎉");
+  Hry.rekni("konec", { delay: 1200 });
+  $("moznosti").innerHTML = '<button class="tlacitko" style="grid-column:1/4;font-size:24px" id="znovuHrat">🔄 Hrát znovu</button>';
+  $("znovuHrat").onclick = () => { Hry.uklidOslavu(); novaHra(); };
+}
+
+novaHra();
+</script>
+</body>
+</html>
