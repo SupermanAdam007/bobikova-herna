@@ -117,12 +117,34 @@ function velikost() {
   rozlozeni();
 }
 function font(c) { c.font = '400 ' + S + 'px "Playwrite CZ", cursive'; c.textBaseline = "alphabetic"; }
+// Vlastní tvary malého psacího b a p podle školní tabule: v písmu Playwrite CZ jim chybí náběh zleva dole (p)
+// a mají jiné bříško (b). Souřadnice jsou v násobcích výšky malého písmene (x doprava, y nahoru od účaří),
+// kreslí se jako tlustá čára po osové dráze.
+const VLASTNI = {
+  b: { sirka: 2.0, d: [["M", 0, 0], ["C", 0.25, 0.25, 0.65, 1.2, 0.9, 1.8], ["C", 1.0, 2.0, 1.2, 1.98, 1.15, 1.7],
+        ["C", 1.0, 1.1, 0.8, 0.55, 0.74, 0.18], ["C", 0.72, -0.1, 1.1, -0.1, 1.3, 0.12], ["C", 1.45, 0.3, 1.6, 0.65, 2.0, 0.92]] },
+  p: { sirka: 2.3, d: [["M", 0, 0], ["L", 0.85, 1.12], ["L", 0.3, -1.15], ["L", 0.78, 0.9],
+        ["C", 1.0, 1.2, 1.55, 1.15, 1.55, 0.45], ["C", 1.55, 0.0, 1.62, -0.05, 1.78, 0.0], ["C", 1.95, 0.08, 2.05, 0.4, 2.3, 0.8]] },
+};
+const maVlastni = t => rezim === "male" && VLASTNI[t];
+function vyskaX() { font(cp); return cp.measureText("x").actualBoundingBoxAscent; }
+function tloustkaCary() { return S * 0.075; }
+function vlastniCesta(t) {
+  const v = VLASTNI[t], xh = vyskaX(), P = new Path2D();
+  const X = u => xText + u * xh, Y = w => yZakl - w * xh;
+  for (const k of v.d) {
+    if (k[0] === "M") P.moveTo(X(k[1]), Y(k[2]));
+    else if (k[0] === "L") P.lineTo(X(k[1]), Y(k[2]));
+    else P.bezierCurveTo(X(k[1]), Y(k[2]), X(k[3]), Y(k[4]), X(k[5]), Y(k[6]));
+  }
+  return P;
+}
 function rozlozeni() {
   const t = polozky[index] ? polozky[index].text : "a";
   const znaku = Math.max(1, t.length);
   S = rezim === "slova" ? Math.min(H * 0.4, W / (znaku * 0.62)) : Math.min(H * 0.5, W * 0.75);
   font(cp);
-  const sirka = cp.measureText(t).width;
+  const sirka = maVlastni(t) ? VLASTNI[t].sirka * vyskaX() : cp.measureText(t).width;
   xText = (W - sirka) / 2;
   yZakl = H * (rezim === "slova" ? 0.6 : 0.64);
 }
@@ -130,6 +152,7 @@ function rozlozeni() {
 function textDo(c, t, tloustka) {
   font(c);
   c.lineJoin = "round"; c.lineCap = "round";
+  if (maVlastni(t)) { c.lineWidth = tloustkaCary() + (tloustka || 0); c.stroke(vlastniCesta(t)); return; }
   if (tloustka) { c.lineWidth = tloustka; c.strokeText(t, xText, yZakl); }
   c.fillText(t, xText, yZakl);
 }
@@ -150,6 +173,12 @@ function nakresliPodklad(hotovoZelene) {
   font(cp); cp.lineJoin = "round"; cp.lineCap = "round";
   // Nejdřív obrys (dvojnásobná tloušťka), potom výplň navrch: tím zmizí vnitřní čáry tam, kde se tahy písmene
   // v písmu překrývají (b, p a další), a zůstane jen čistý vnější obrys.
+  if (maVlastni(t)) {
+    const cesta = vlastniCesta(t);
+    cp.lineWidth = tloustkaCary() + 6; cp.strokeStyle = hotovoZelene ? "#2b8a3e" : "#4c6ef5"; cp.stroke(cesta);
+    cp.lineWidth = tloustkaCary(); cp.strokeStyle = hotovoZelene ? "#b2f2bb" : "#e7ecff"; cp.stroke(cesta);
+    return;
+  }
   cp.lineWidth = 6; cp.strokeStyle = hotovoZelene ? "#2b8a3e" : "#4c6ef5";
   cp.strokeText(t, xText, yZakl);
   cp.fillStyle = hotovoZelene ? "#b2f2bb" : "#e7ecff";
