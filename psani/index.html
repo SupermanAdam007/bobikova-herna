@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Psaní</title>
+<link rel="stylesheet" href="../spolecne/spolecne.css">
+<style>
+  /* Písmo Playwrite CZ (SIL Open Font License, viz OFL.txt): česká školní psací abeceda */
+  @font-face { font-family: "Playwrite CZ"; src: url("PlaywriteCZ.ttf") format("truetype"); font-weight: 100 400; }
+  #pas { flex: none; display: flex; gap: 5px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: thin; }
+  .polozka {
+    flex: none; min-width: 44px; height: 44px; border-radius: 10px; border: 3px solid #fff; background: #3b4a8f; color: #fff;
+    font-family: "Playwrite CZ", cursive; font-size: 20px; cursor: pointer; padding: 0 8px; position: relative;
+  }
+  .polozka.vybrana { background: #fff; color: #1f2a5a; border-color: #ffe066; outline: 3px solid #000; }
+  .polozka.hotovo::after { content: "⭐"; position: absolute; right: -6px; top: -9px; font-size: 14px; }
+  #platno { flex: 1; min-height: 0; position: relative; background: #fffdf5; border-radius: 16px; border: 4px solid #ffe066; overflow: hidden; }
+  #platno canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #kresba { touch-action: none; cursor: crosshair; }
+  #chybi { pointer-events: none; }
+  #postup { flex: none; height: 14px; background: #050818; border: 2px solid #fff; border-radius: 8px; overflow: hidden; position: relative; }
+  #postupPlny { height: 100%; width: 0; background: #51cf66; transition: width .25s; }
+  #postupCil { position: absolute; top: 0; bottom: 0; left: 75%; width: 3px; background: #fff; }
+  #tlacitka { flex: none; display: flex; gap: 6px; }
+  #tlacitka .tlacitko { flex: 1; }
+  #dalsi { background: #2b8a3e; flex: 1.4 !important; }
+</style>
+</head>
+<body>
+  <div id="top">
+    <a class="domu" href="../">🏠 Hry</a>
+    <h1>✏️ Psaní</h1>
+    <span class="hvezdy" id="hvezdy"></span>
+    <button class="kulate" id="zvuk" title="Zvuk">🔊</button>
+  </div>
+
+  <div class="zalozky" id="zalozky">
+    <button data-m="male" class="aktivni">a malá</button>
+    <button data-m="velke">A velká</button>
+    <button data-m="slova">slova</button>
+  </div>
+
+  <div id="pas"></div>
+  <div id="hlaska">Obtáhni písmeno prstem. Drž se čáry!</div>
+
+  <div id="platno">
+    <canvas id="podklad"></canvas>
+    <canvas id="kresba"></canvas>
+    <canvas id="chybi"></canvas>
+  </div>
+  <div id="postup" title="Kolik jsi obtáhl"><div id="postupPlny"></div><div id="postupCil"></div></div>
+
+  <div id="tlacitka">
+    <button class="tlacitko" id="smazat">🗑 Znovu</button>
+    <button class="tlacitko" id="poslech">🔊 Poslechni</button>
+    <button class="tlacitko" id="dalsi">Další ➡️</button>
+  </div>
+
+<script src="../spolecne/spolecne.js"></script>
+<script src="../spolecne/pismena.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+Hry.nastavTlacitkoZvuku($("zvuk"));
+
+const jmena = ["ahoj", "skvele1", "skvele2", "skvele3", "zkus1", "zkus2", "konec"];
+PISMENA.forEach(p => jmena.push("obtahni_" + p.id));
+SLOVA.forEach(s => jmena.push("slovo_" + s.id));
+Hry.nactiHlas("zvuky/", jmena);
+
+const PRAH_POKRYTI = 0.75;   // kolik z písmene musí být obtažené
+const MAX_MIMO = 0.40;       // kolik čmáranice smí být mimo písmeno
+
+let rezim = "male", polozky = [], index = 0, tahy = [], hotovo = Hry.nacti("psani_hotovo", {}), zamceno = false, kresli = null;
+const pod = $("podklad"), kre = $("kresba"), chy = $("chybi");
+const cp = pod.getContext("2d"), ck = kre.getContext("2d"), cc = chy.getContext("2d");
+let W = 0, H = 0, dpr = 1, S = 0, xText = 0, yZakl = 0, hlasId = null;
+
+function hlaska(t, cls = "") { const h = $("hlaska"); h.textContent = t; h.className = cls; }
+
+// ---------- Položky k obtahování ----------
+function sestavPolozky() {
+  if (rezim === "male") polozky = PISMENA.map(p => ({ klic: "m_" + p.id, text: p.male, hlas: "obtahni_" + p.id }));
+  else if (rezim === "velke") polozky = PISMENA.map(p => ({ klic: "v_" + p.id, text: p.velke, hlas: "obtahni_" + p.id }));
+  else polozky = SLOVA.map(s => ({ klic: "s_" + s.id, text: s.text, hlas: "slovo_" + s.id }));
+  const pas = $("pas"); pas.innerHTML = "";
+  polozky.forEach((p, i) => {
+    const b = document.createElement("button");
+    b.className = "polozka" + (hotovo[p.klic] ? " hotovo" : ""); b.id = "p" + i; b.textContent = p.text;
+    b.onclick = () => { Hry.zvuky.klik(); vyber(i, true); };
+    pas.appendChild(b);
+  });
+}
+function vyber(i, mluv) {
+  index = i; zamceno = false; tahy = [];
+  document.querySelectorAll(".polozka").forEach((b, j) => b.classList.toggle("vybrana", j === i));
+  const el = $("p" + i); if (el) el.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  Hry.uklidOslavu(); cc.clearRect(0, 0, W, H);
+  hlaska(rezim === "slova" ? "Obtáhni slovo prstem. Drž se čáry!" : "Obtáhni písmeno prstem. Drž se čáry!");
+  nastavPostup(0); nakresliPodklad(false); ck.clearRect(0, 0, W, H);
+  if (mluv) Hry.rekni(polozky[i].hlas, { delay: 150 });
+  const hot = Object.keys(hotovo).filter(k => polozky.some(p => p.klic === k)).length;
+  $("hvezdy").textContent = "⭐ " + hot + "/" + polozky.length;
+}
+
+// ---------- Plátno a písmo ----------
+function velikost() {
+  const r = $("platno").getBoundingClientRect();
+  W = Math.max(10, r.width - 8); H = Math.max(10, r.height - 8);  // minus rámeček
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  for (const c of [pod, kre, chy]) { c.width = W * dpr; c.height = H * dpr; }
+  for (const c of [cp, ck, cc]) c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  rozlozeni();
+}
+function font(c) { c.font = '400 ' + S + 'px "Playwrite CZ", cursive'; c.textBaseline = "alphabetic"; }
+function rozlozeni() {
+  const t = polozky[index] ? polozky[index].text : "a";
+  const znaku = Math.max(1, t.length);
+  S = rezim === "slova" ? Math.min(H * 0.4, W / (znaku * 0.62)) : Math.min(H * 0.5, W * 0.75);
+  font(cp);
+  const sirka = cp.measureText(t).width;
+  xText = (W - sirka) / 2;
+  yZakl = H * (rezim === "slova" ? 0.6 : 0.64);
+}
+// vykreslí text do daného kontextu: tloustka = dilatace okraje (pro tolerantní masku)
+function textDo(c, t, tloustka) {
+  font(c);
+  c.lineJoin = "round"; c.lineCap = "round";
+  if (tloustka) { c.lineWidth = tloustka; c.strokeText(t, xText, yZakl); }
+  c.fillText(t, xText, yZakl);
+}
+function nakresliPodklad(hotovoZelene) {
+  rozlozeni();
+  cp.clearRect(0, 0, W, H);
+  // linky: základní, výška malých písmen, výška horních dříků
+  font(cp);
+  const xh = cp.measureText("x").actualBoundingBoxAscent, lh = cp.measureText("l").actualBoundingBoxAscent;
+  cp.save();
+  cp.strokeStyle = "#74c0fc"; cp.lineWidth = 2; cp.setLineDash([]);
+  cp.beginPath(); cp.moveTo(0, yZakl); cp.lineTo(W, yZakl); cp.stroke();
+  cp.strokeStyle = "#a5d8ff"; cp.setLineDash([8, 6]);
+  for (const y of [yZakl - xh, yZakl - lh]) { cp.beginPath(); cp.moveTo(0, y); cp.lineTo(W, y); cp.stroke(); }
+  cp.restore();
+  const t = polozky[index].text;
+  // předloha: světlé písmeno s tmavým obrysem, které se obtahuje
+  font(cp); cp.lineJoin = "round"; cp.lineCap = "round";
+  cp.fillStyle = hotovoZelene ? "#b2f2bb" : "#e7ecff";
+  cp.fillText(t, xText, yZakl);
+  cp.lineWidth = 3; cp.strokeStyle = hotovoZelene ? "#2b8a3e" : "#4c6ef5";
+  cp.strokeText(t, xText, yZakl);
+}
+function sirkaStopy() { return Math.max(12, S * 0.085); }
+
+// ---------- Kreslení prstem ----------
+function bod(e) { const r = kre.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
+function cara(c, a, b, sirka) {
+  c.beginPath(); c.moveTo(a.x * W, a.y * H); c.lineTo(b.x * W, b.y * H); c.stroke();
+}
+function nastavStopu(c, sirka, barva) { c.lineCap = "round"; c.lineJoin = "round"; c.lineWidth = sirka; c.strokeStyle = barva; c.fillStyle = barva; }
+kre.addEventListener("pointerdown", e => {
+  if (zamceno) return;
+  e.preventDefault(); try { kre.setPointerCapture(e.pointerId); } catch (x) {}
+  cc.clearRect(0, 0, W, H);
+  kresli = [bod(e)]; tahy.push(kresli);
+  nastavStopu(ck, sirkaStopy(), "#1971c2");
+  ck.beginPath(); ck.arc(kresli[0].x * W, kresli[0].y * H, sirkaStopy() / 2, 0, 7); ck.fill();
+});
+kre.addEventListener("pointermove", e => {
+  if (!kresli) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  nastavStopu(ck, sirkaStopy(), "#1971c2");
+  for (const ev of (evs.length ? evs : [e])) {
+    const p = bod(ev), q = kresli[kresli.length - 1];
+    cara(ck, q, p); kresli.push(p);
+  }
+});
+const konecTahu = e => { if (!kresli) return; kresli = null; vyhodnot(); };
+kre.addEventListener("pointerup", konecTahu);
+kre.addEventListener("pointercancel", konecTahu);
+
+// ---------- Vyhodnocení: kolik z písmene je obtažené a kolik čmáranice je mimo ----------
+function malePlatno() { const c = document.createElement("canvas"); c.width = Math.round(W / 2); c.height = Math.round(H / 2); return c; }
+function data(c) { return c.getContext("2d").getImageData(0, 0, c.width, c.height).data; }
+function vykresliTahy(c, sirka) {
+  const x = c.getContext("2d"); x.setTransform(c.width / W, 0, 0, c.height / H, 0, 0);
+  x.lineCap = "round"; x.lineJoin = "round"; x.lineWidth = sirka; x.strokeStyle = x.fillStyle = "#000";
+  for (const t of tahy) {
+    x.beginPath(); x.arc(t[0].x * W, t[0].y * H, sirka / 2, 0, 7); x.fill();
+    x.beginPath(); t.forEach((p, i) => i ? x.lineTo(p.x * W, p.y * H) : x.moveTo(p.x * W, p.y * H)); x.stroke();
+  }
+}
+function vyhodnot() {
+  const t = polozky[index].text;
+  const mask = malePlatno(), tol = malePlatno(), pokr = malePlatno(), uziv = malePlatno();
+  for (const [c, tl] of [[mask, 0], [tol, S * 0.12]]) {
+    const x = c.getContext("2d"); x.setTransform(c.width / W, 0, 0, c.height / H, 0, 0);
+    x.fillStyle = x.strokeStyle = "#000"; textDo(x, t, tl);
+  }
+  vykresliTahy(pokr, sirkaStopy() * 1.9);   // shovívavé pokrytí: čára nemusí sedět přesně
+  vykresliTahy(uziv, sirkaStopy());
+  const m = data(mask), tl = data(tol), p = data(pokr), u = data(uziv);
+  let celkem = 0, pokryto = 0, uzivPix = 0, mimo = 0;
+  const chybejici = malePlatno(), cx = chybejici.getContext("2d"), ci = cx.createImageData(chybejici.width, chybejici.height);
+  for (let i = 3; i < m.length; i += 4) {
+    if (m[i] > 100) { celkem++; if (p[i] > 40) pokryto++; else { ci.data[i - 3] = 255; ci.data[i - 2] = 200; ci.data[i - 1] = 0; ci.data[i] = 255; } }
+    if (u[i] > 40) { uzivPix++; if (tl[i] < 40) mimo++; }
+  }
+  cx.putImageData(ci, 0, 0);
+  const pokryti = celkem ? pokryto / celkem : 0, mimoPodil = uzivPix ? mimo / uzivPix : 0;
+  nastavPostup(pokryti);
+  if (pokryti >= PRAH_POKRYTI && mimoPodil <= MAX_MIMO) return uspech();
+  neuspech(pokryti, mimoPodil, chybejici);
+}
+function nastavPostup(p) { $("postupPlny").style.width = Math.round(Math.min(1, p) * 100) + "%"; }
+
+async function uspech() {
+  zamceno = true;
+  const p = polozky[index];
+  hotovo[p.klic] = true; Hry.uloz("psani_hotovo", hotovo);
+  $("p" + index).classList.add("hotovo");
+  nastavPostup(1); ck.clearRect(0, 0, W, H);
+  nakresliPodklad(true);
+  hlaska("✔ Krásně! " + p.text, "dobre");
+  Hry.zvuky.spravne(); Hry.oslava(false, "⭐ Výborně! ⭐");
+  const vse = polozky.every(x => hotovo[x.klic]);
+  const hot = Object.keys(hotovo).filter(k => polozky.some(x => x.klic === k)).length;
+  $("hvezdy").textContent = "⭐ " + hot + "/" + polozky.length;
+  await Hry.rekni(vse ? "konec" : "skvele", { delay: 350 });
+  await Hry.sleep(500);
+  if (zamceno && index === polozky.indexOf(p)) dalsiPolozka();
+}
+function neuspech(pokryti, mimoPodil, chybejici) {
+  Hry.zvuky.spatne();
+  if (mimoPodil > MAX_MIMO) {
+    hlaska("Moc čmárání mimo čáru. Smaž to a obtáhni to pomalu.", "spatne");
+    $("smazat").style.animation = "pulz .6s 4";
+    setTimeout(() => $("smazat").style.animation = "", 2600);
+  } else {
+    hlaska("Ještě něco chybí. Dokresli žlutá místa!", "spatne");
+    // ukaž chybějící části žlutě
+    cc.clearRect(0, 0, W, H); cc.globalAlpha = .9; cc.drawImage(chybejici, 0, 0, W, H); cc.globalAlpha = 1;
+    setTimeout(() => cc.clearRect(0, 0, W, H), 2500);
+  }
+  if (!zamceno) Hry.rekni("zkus", { delay: 300 });
+}
+function dalsiPolozka() {
+  Hry.uklidOslavu();
+  let i = index;
+  for (let k = 1; k <= polozky.length; k++) {
+    const j = (index + k) % polozky.length;
+    if (!hotovo[polozky[j].klic]) { i = j; break; }
+    if (k === polozky.length) i = (index + 1) % polozky.length;
+  }
+  vyber(i, true);
+}
+
+$("smazat").onclick = () => { Hry.zvuky.klik(); zamceno = false; tahy = []; ck.clearRect(0, 0, W, H); cc.clearRect(0, 0, W, H); nastavPostup(0); nakresliPodklad(false); hlaska("Zkus to znovu. Drž se čáry!"); };
+$("poslech").onclick = () => Hry.rekni(polozky[index].hlas);
+$("dalsi").onclick = () => { Hry.zvuky.klik(); dalsiPolozka(); };
+
+function nastavRezim(r) {
+  rezim = r; Hry.zastav();
+  document.querySelectorAll("#zalozky button").forEach(b => b.classList.toggle("aktivni", b.dataset.m === r));
+  sestavPolozky(); index = 0; vyber(0, false);
+}
+document.querySelectorAll("#zalozky button").forEach(b => b.onclick = () => { Hry.zvuky.klik(); nastavRezim(b.dataset.m); });
+
+let pozdraveno = false;
+window.addEventListener("pointerdown", () => { if (pozdraveno) return; pozdraveno = true; Hry.rekni("ahoj", { delay: 600 }); });
+
+let casovac;
+window.addEventListener("resize", () => { clearTimeout(casovac); casovac = setTimeout(() => {
+  velikost(); nakresliPodklad(zamceno); ck.clearRect(0, 0, W, H);
+  nastavStopu(ck, sirkaStopy(), "#1971c2");
+  for (const t of tahy) { ck.beginPath(); t.forEach((p, i) => i ? ck.lineTo(p.x * W, p.y * H) : ck.moveTo(p.x * W, p.y * H)); ck.stroke(); }
+}, 150); });
+
+(document.fonts && document.fonts.load('400 40px "Playwrite CZ"') || Promise.resolve()).then(() => {
+  sestavPolozky(); velikost(); vyber(0, false);
+});
+</script>
+</body>
+</html>

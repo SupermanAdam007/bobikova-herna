@@ -2,12 +2,55 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="0; url=aplikace/robot.html">
-<title>Robot Bobík</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hry pro prvňáčky</title>
+<meta name="description" content="Hry pro děti v první třídě: programování, abeceda a psaní českých písmen.">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: "Trebuchet MS", "Comic Sans MS", sans-serif; background: #1f2a5a; color: #fff;
+    height: 100dvh; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 10px;
+  }
+  h1 { margin: 0; text-align: center; font-size: clamp(22px, 5.5dvh, 44px); flex: none; }
+  p.podtitul { margin: 0; text-align: center; font-size: clamp(14px, 2.6dvh, 20px); flex: none; opacity: .95; }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; grid-auto-rows: 1fr; gap: 10px; max-width: 1100px; width: 100%; margin: 0 auto; }
+  a.hra {
+    display: flex; flex-direction: row; align-items: stretch; min-height: 0; background: #fff; color: #1f2a5a; text-decoration: none;
+    border-radius: 20px; overflow: hidden; border: 4px solid #ffe066; box-shadow: 0 6px 0 rgba(0,0,0,.4); transition: transform .1s;
+  }
+  a.hra:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  a.hra img { flex: 0 0 48%; min-width: 0; width: 48%; height: 100%; object-fit: contain; background: #fff; display: block; background: #fff; }
+  .text { flex: 1; min-width: 0; padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+  .text h2 { margin: 0; font-size: clamp(20px, 4.4dvh, 38px); }
+  .text span { font-size: clamp(13px, 2.4dvh, 20px); line-height: 1.2; }
+  .text b { align-self: flex-start; background: #e03131; color: #fff; border-radius: 14px; padding: 4px 14px; font-size: clamp(14px, 2.6dvh, 22px); margin-top: 2px; }
+  @media (orientation: landscape) and (min-width: 700px) {
+    main { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; }
+    a.hra { flex-direction: column; }
+    a.hra img { flex: 1 1 auto; width: 100%; height: auto; min-height: 0; object-fit: cover; }
+    .text { flex: none; }
+  }
+  footer { flex: none; text-align: center; font-size: 12px; opacity: .8; }
+</style>
 </head>
 <body>
-<p><a href="aplikace/robot.html">Hrát Robota Bobíka</a></p>
-<script>location.replace("aplikace/robot.html");</script>
+  <h1>🎮 Hry pro prvňáčky</h1>
+  <p class="podtitul">Vyber si hru a klepni na ni.</p>
+  <main>
+    <a class="hra" href="robot/">
+      <img src="obrazky/robot.svg" alt="Robot jde po cestě k cíli">
+      <div class="text"><h2>🤖 Robot Bobík</h2><span>Poskládej program z kroků a pomoz robotovi dojít do cíle.</span><b>Hrát ▶</b></div>
+    </a>
+    <a class="hra" href="abeceda/">
+      <img src="obrazky/abeceda.svg" alt="Barevné kostky s písmeny A, B a Č">
+      <div class="text"><h2>🔤 Abeceda</h2><span>Poznej písmena, poslouchej je a najdi správné.</span><b>Hrát ▶</b></div>
+    </a>
+    <a class="hra" href="psani/">
+      <img src="obrazky/psani.svg" alt="Tužka obtahuje psací písmeno">
+      <div class="text"><h2>✏️ Psaní</h2><span>Obtahuj psací písmena české abecedy a nauč se je psát.</span><b>Hrát ▶</b></div>
+    </a>
+  </main>
+  <footer>Hry nic neukládají na internet a neptají se na jména.</footer>
 </body>
 </html>

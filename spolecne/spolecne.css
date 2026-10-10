@@ -1,0 +1,47 @@
+/* Společný vzhled her: tmavě modré pozadí, velký kontrast pro projektor, vše se vejde na jednu obrazovku. */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  margin: 0; font-family: "Trebuchet MS", "Comic Sans MS", sans-serif;
+  background: #1f2a5a; color: #fff; height: 100dvh; overflow: hidden;
+  display: flex; flex-direction: column; padding: 6px; gap: 6px;
+  user-select: none; touch-action: manipulation;
+}
+a { color: inherit; }
+#top { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; flex: none; }
+#top h1 { margin: 0; font-size: 20px; }
+.domu { text-decoration: none; background: #3b4a8f; border-radius: 14px; padding: 3px 10px; font-size: 14px; font-weight: bold; }
+.hvezdy { font-size: 14px; letter-spacing: 1px; }
+.kulate { width: 30px; height: 30px; border-radius: 50%; border: none; background: #3b4a8f; color: #fff; font-size: 16px; cursor: pointer; padding: 0; }
+.tlacitko {
+  border: none; border-radius: 12px; padding: 9px 8px; font-size: 16px; font-family: inherit; font-weight: bold;
+  cursor: pointer; color: #fff; background: #5f3dc4; box-shadow: 0 3px 0 rgba(0,0,0,.35);
+}
+.tlacitko:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,.35); }
+.tlacitko:disabled { opacity: .45; cursor: not-allowed; }
+.zalozky { display: flex; gap: 6px; justify-content: center; flex: none; }
+.zalozky button {
+  flex: 1; max-width: 190px; border: 3px solid transparent; border-radius: 12px; padding: 7px 4px; font-size: 14px;
+  font-family: inherit; font-weight: bold; background: #3b4a8f; color: #fff; cursor: pointer;
+}
+.zalozky button.aktivni { background: #fff; color: #1f2a5a; border-color: #ffe066; }
+#hlaska { height: 44px; font-size: 15px; font-weight: bold; line-height: 1.15; background: #3b4a8f; border-radius: 12px; padding: 4px 10px; display: flex; align-items: center; overflow: hidden; flex: none; }
+#hlaska.dobre { background: #2b8a3e; }
+#hlaska.spatne { background: #b02525; }
+
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+#banner {
+  position: fixed; left: 50%; top: 32%; transform: translate(-50%, -50%) scale(0); z-index: 60; pointer-events: none;
+  font-size: clamp(30px, 10vw, 76px); font-weight: bold; text-align: center; white-space: nowrap;
+  color: #fff; text-shadow: 0 4px 0 #d9480f, 0 0 24px #ffd43b, 0 0 8px #000; opacity: 0;
+}
+#banner.show { animation: vyskoc 2.6s ease-out forwards; }
+@keyframes vyskoc {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
+  15% { transform: translate(-50%, -50%) scale(1.25) rotate(4deg); opacity: 1; }
+  25% { transform: translate(-50%, -50%) scale(1) rotate(0); }
+  80% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(1); opacity: 0; }
+}
+@keyframes zatres { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@keyframes pulz { 0%,100% { transform: scale(.94); } 50% { transform: scale(1.04); } }

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260">
+  <rect width="400" height="260" rx="24" fill="#fffdf5"/>
+  <g stroke="#74c0fc" stroke-width="3"><path d="M20 190 H380"/></g>
+  <g stroke="#a5d8ff" stroke-width="3" stroke-dasharray="10 8"><path d="M20 140 H380"/><path d="M20 80 H380"/></g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 150 C110 120 70 160 90 185 C110 200 150 165 160 140 C158 165 162 185 185 188" stroke="#c5d0ff" stroke-width="22"/>
+    <path d="M150 150 C110 120 70 160 90 185 C110 200 150 165 160 140 C158 165 162 185 185 188" stroke="#364fc7" stroke-width="4" stroke-dasharray="1 9"/>
+    <path d="M175 98 L185 76 M200 98 L210 76" stroke="#364fc7" stroke-width="0"/>
+    <path d="M190 118 q10 -22 22 -6" stroke="#c5d0ff" stroke-width="16"/>
+    <path d="M150 150 C120 130 85 160 100 182" stroke="#1971c2" stroke-width="12"/>
+  </g>
+  <g transform="rotate(35 300 110)"><rect x="285" y="40" width="30" height="130" rx="4" fill="#ffd43b" stroke="#e67700" stroke-width="4"/><path d="M285 170 L300 205 L315 170Z" fill="#ffe8cc" stroke="#e67700" stroke-width="4"/><path d="M295 190 L300 205 L305 190Z" fill="#333"/><rect x="285" y="40" width="30" height="22" rx="4" fill="#ff8787" stroke="#e67700" stroke-width="4"/></g>
+  <text x="330" y="235" text-anchor="middle" font-size="34">⭐</text>
+</svg>

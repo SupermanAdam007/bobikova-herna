@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Abeceda</title>
+<link rel="stylesheet" href="../spolecne/spolecne.css">
+<style>
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+  #karta, #otazka {
+    flex: 1; min-height: 0; background: #fff; color: #1f2a5a; border-radius: 16px; border: 4px solid #ffe066;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; position: relative; overflow: hidden;
+  }
+  #velkePismeno { font-size: min(16dvh, 24vw); line-height: 1.05; font-weight: bold; letter-spacing: .04em; }
+  #velkePismeno.samo { color: #c92a2a; }
+  #velkePismeno.souhl { color: #1864ab; }
+  #obrazek { font-size: min(9dvh, 15vw); line-height: 1.1; }
+  #slovo { font-size: min(4.6dvh, 8vw); font-weight: bold; }
+  #slovo b { background: #ffe066; border-radius: 6px; padding: 0 3px; color: #000; }
+  #druh { font-size: 14px; font-weight: bold; }
+  #znovu { position: absolute; right: 8px; top: 8px; }
+
+  #mrizka { flex: none; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .dlazdice {
+    border: 3px solid #fff; border-radius: 10px; height: clamp(34px, 6.3dvh, 52px); font-size: clamp(16px, 3.4dvh, 26px); font-weight: bold;
+    font-family: inherit; color: #fff; cursor: pointer; padding: 0;
+  }
+  .dlazdice.samo { background: #c92a2a; }
+  .dlazdice.souhl { background: #1864ab; }
+  .dlazdice.vybrana { border-color: #ffe066; outline: 3px solid #000; transform: scale(1.08); z-index: 2; }
+
+  #moznosti { flex: none; height: 42%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .moznost {
+    border: 4px solid #fff; border-radius: 16px; font-size: min(14dvh, 22vw); font-weight: bold; font-family: inherit; color: #fff;
+    cursor: pointer; background: #1864ab; box-shadow: 0 5px 0 rgba(0,0,0,.4);
+  }
+  .moznost:nth-child(2) { background: #c2255c; } .moznost:nth-child(3) { background: #2b8a3e; } .moznost:nth-child(4) { background: #d9480f; }
+  .moznost:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  .moznost.spatne { animation: zatres .4s; opacity: .35; pointer-events: none; }
+  .moznost.dobre { outline: 6px solid #ffe066; animation: pulz .5s 3; }
+  #otazkaText { font-size: min(4.2dvh, 6.5vw); font-weight: bold; text-align: center; padding: 0 8px; }
+  #reproduktor { font-size: min(14dvh, 22vw); background: none; border: none; cursor: pointer; color: inherit; line-height: 1; }
+  .skryte { display: none !important; }
+</style>
+</head>
+<body>
+  <div id="top">
+    <a class="domu" href="../">🏠 Hry</a>
+    <h1>🔤 Abeceda</h1>
+    <span class="hvezdy" id="hvezdy"></span>
+    <button class="kulate" id="zvuk" title="Zvuk">🔊</button>
+  </div>
+
+  <div class="zalozky" id="zalozky">
+    <button data-m="abeceda" class="aktivni">📖 Abeceda</button>
+    <button data-m="najdi">🔊 Najdi písmeno</button>
+    <button data-m="obrazek">🖼️ Obrázek</button>
+  </div>
+
+  <div id="hlaska">Klepni na písmeno a já ti ho přečtu.</div>
+
+  <main>
+    <section id="karta">
+      <button class="kulate" id="znovu" title="Poslechnout znovu" style="width:38px;height:38px">🔊</button>
+      <div id="velkePismeno"></div>
+      <div id="obrazek"></div>
+      <div id="slovo"></div>
+      <div id="druh"></div>
+    </section>
+    <div id="mrizka"></div>
+
+    <section id="otazka" class="skryte">
+      <button id="reproduktor" title="Poslechnout znovu">🔊</button>
+      <div id="otazkaText"></div>
+    </section>
+    <div id="moznosti" class="skryte"></div>
+  </main>
+
+<script src="../spolecne/spolecne.js"></script>
+<script src="../spolecne/pismena.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const SAMOHLASKY = new Set(["a","a2","e","e2","e3","i","i2","o","o2","u","u2","u3","y","y2"]);
+const druhPismene = p => SAMOHLASKY.has(p.id) ? "samo" : "souhl";
+const KOL = 10; // počet otázek v jednom kole
+
+// nahrávky: karta_*, najdi_*, slovo_* + zpětná vazba
+const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "zkus1", "zkus2", "otazka", "konec"];
+PISMENA.forEach(p => { jmena.push("karta_" + p.id, "najdi_" + p.id); if (p.m3) jmena.push("slovo_" + p.id); });
+Hry.nactiHlas("zvuky/", jmena);
+Hry.nastavTlacitkoZvuku($("zvuk"));
+
+let rezim = "abeceda", vybrane = null, kolo = 0, body = 0, spravnaOdpoved = null, zamceno = false, chyba = false;
+
+function hlaska(t, cls = "") { const h = $("hlaska"); h.textContent = t; h.className = cls; }
+const nahodne = (pole, n) => pole.slice().sort(() => Math.random() - .5).slice(0, n);
+
+// ---------- Režim 1: procházení abecedy ----------
+function sestavMrizku() {
+  const m = $("mrizka"); m.innerHTML = "";
+  PISMENA.forEach(p => {
+    const b = document.createElement("button");
+    b.className = "dlazdice " + druhPismene(p); b.id = "d_" + p.id; b.textContent = p.velke;
+    b.onclick = () => ukazKartu(p, true);
+    m.appendChild(b);
+  });
+}
+function zvyraznene(p) {
+  const s = p.slovo, i = s.toLowerCase().indexOf(p.male), d = p.male.length;
+  return s.slice(0, i) + "<b>" + s.slice(i, i + d) + "</b>" + s.slice(i + d);
+}
+function ukazKartu(p, mluv) {
+  vybrane = p;
+  document.querySelectorAll(".dlazdice").forEach(d => d.classList.toggle("vybrana", d.id === "d_" + p.id));
+  const v = $("velkePismeno");
+  v.textContent = p.velke + " " + p.male; v.className = druhPismene(p);
+  $("obrazek").textContent = p.emoji;
+  $("slovo").innerHTML = zvyraznene(p);
+  $("druh").textContent = (SAMOHLASKY.has(p.id) ? "samohláska" : "souhláska") + (p.kde === "uvnitr" ? " (ve slově)" : "");
+  $("druh").style.color = SAMOHLASKY.has(p.id) ? "#c92a2a" : "#1864ab";
+  hlaska(p.velke + " " + p.male + (p.kde === "zacatek" ? " jako " : " je ve slově ") + p.slovo);
+  if (mluv) { Hry.zvuky.klik(); Hry.rekni("karta_" + p.id); }
+}
+$("znovu").onclick = () => { if (vybrane) Hry.rekni("karta_" + vybrane.id); };
+
+// ---------- Režimy 2 a 3: hry ----------
+function novaHra() {
+  kolo = 0; body = 0;
+  $("hvezdy").textContent = "";
+  dalsiOtazka();
+}
+function dalsiOtazka() {
+  if (kolo >= KOL) return konec();
+  kolo++; zamceno = false; chyba = false;
+  const zdroj = rezim === "obrazek" ? PISMENA.filter(p => p.m3) : PISMENA;
+  const spravna = nahodne(zdroj, 1)[0];
+  const spatne = nahodne(zdroj.filter(p => p.id !== spravna.id), 3);
+  spravnaOdpoved = spravna;
+  const mozn = $("moznosti"); mozn.innerHTML = "";
+  nahodne([spravna, ...spatne], 4).forEach(p => {
+    const b = document.createElement("button");
+    b.className = "moznost"; b.textContent = p.velke + " " + p.male; b.dataset.id = p.id;
+    b.onclick = () => odpoved(p, b);
+    mozn.appendChild(b);
+  });
+  $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+  if (rezim === "najdi") {
+    $("reproduktor").textContent = "🔊";
+    $("otazkaText").textContent = "Najdi písmeno, které slyšíš (" + kolo + "/" + KOL + ")";
+    hlaska("Poslouchej a klepni na správné písmeno.");
+  } else {
+    $("reproduktor").textContent = spravna.emoji;
+    $("otazkaText").textContent = "S jakým písmenem začíná tohle slovo? (" + kolo + "/" + KOL + ")";
+    hlaska("Jaké písmeno je na začátku slova?");
+  }
+  prectiOtazku();
+}
+async function prectiOtazku() {
+  if (!spravnaOdpoved) return;
+  if (rezim === "najdi") Hry.rekni("najdi_" + spravnaOdpoved.id, { delay: 250 });
+  else { await Hry.rekni("slovo_" + spravnaOdpoved.id, { delay: 250 }); if (!zamceno) Hry.rekni("otazka"); }
+}
+$("reproduktor").onclick = prectiOtazku;
+
+async function odpoved(p, btn) {
+  if (zamceno) return;
+  if (p.id === spravnaOdpoved.id) {
+    zamceno = true;
+    btn.classList.add("dobre");
+    if (!chyba) body++;
+    $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+    Hry.zvuky.spravne();
+    hlaska("✔ " + p.velke + " " + p.male + (p.kde === "zacatek" ? " jako " : " je ve slově ") + p.slovo, "dobre");
+    if (rezim === "obrazek") $("otazkaText").textContent = p.slovo;
+    await Hry.rekni("karta_" + p.id, { delay: 300 });
+    await Hry.sleep(400);
+    dalsiOtazka();
+  } else {
+    chyba = true;
+    btn.classList.add("spatne");
+    Hry.zvuky.spatne();
+    hlaska("To není ono. Zkus to znovu!", "spatne");
+    await Hry.rekni("zkus", { delay: 250 });
+    if (!zamceno) prectiOtazku();
+  }
+}
+function konec() {
+  zamceno = true;
+  const vse = body === KOL;
+  hlaska("Hotovo! Máš " + body + " z " + KOL + " hvězdiček. Zahraj si znovu!", "dobre");
+  Hry.zvuky.fanfara();
+  Hry.oslava(vse, vse ? "🏆 Bezchybně! 🏆" : "🎉 Hotovo! 🎉");
+  Hry.rekni("konec", { delay: 1200 });
+  $("moznosti").innerHTML = '<button class="tlacitko" style="grid-column:1/3;font-size:24px" id="znovuHrat">🔄 Hrát znovu</button>';
+  $("znovuHrat").onclick = () => { Hry.uklidOslavu(); novaHra(); };
+}
+
+// ---------- Přepínání režimů ----------
+function nastavRezim(r) {
+  rezim = r; Hry.zastav(); Hry.uklidOslavu(); spravnaOdpoved = null;
+  document.querySelectorAll("#zalozky button").forEach(b => b.classList.toggle("aktivni", b.dataset.m === r));
+  const abeceda = r === "abeceda";
+  $("karta").classList.toggle("skryte", !abeceda); $("mrizka").classList.toggle("skryte", !abeceda);
+  $("otazka").classList.toggle("skryte", abeceda); $("moznosti").classList.toggle("skryte", abeceda);
+  if (abeceda) { $("hvezdy").textContent = ""; hlaska("Klepni na písmeno a já ti ho přečtu."); ukazKartu(vybrane || PISMENA[0], false); }
+  else novaHra();
+}
+document.querySelectorAll("#zalozky button").forEach(b => b.onclick = () => { Hry.zvuky.klik(); nastavRezim(b.dataset.m); });
+
+// uvítání při prvním dotyku (prohlížeč povolí zvuk až po dotyku)
+let pozdraveno = false;
+window.addEventListener("pointerdown", () => { if (pozdraveno) return; pozdraveno = true; if (rezim === "abeceda" && vybrane && vybrane.id === "a") Hry.rekni("ahoj", { delay: 600 }); });
+
+sestavMrizku(); nastavRezim("abeceda");
+</script>
+</body>
+</html>

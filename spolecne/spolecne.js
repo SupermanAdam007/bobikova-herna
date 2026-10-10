@@ -1,0 +1,142 @@
+// Společný kód pro hry: zvuky, hlas, konfety. Žádné externí služby, všechno běží v prohlížeči.
+const Hry = (() => {
+  let muted = false, actx = null, current = null, confettiRun = 0, odemceno = false;
+  const voices = {};
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  function audio() {
+    if (!actx) { const A = window.AudioContext || window.webkitAudioContext; if (A) actx = new A(); }
+    if (actx && actx.state === "suspended") actx.resume();
+    return actx;
+  }
+
+  function tone(freq, dur, { type = "square", vol = 0.15, delay = 0, slide = 0 } = {}) {
+    if (muted) return;
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+
+  const zvuky = {
+    klik() { tone(660, 0.1, { type: "triangle", vol: 0.25 }); },
+    spravne() { [523, 659, 784].forEach((f, i) => tone(f, 0.14, { type: "triangle", vol: 0.22, delay: i * 0.09 })); },
+    spatne() { tone(220, 0.22, { type: "sawtooth", vol: 0.13 }); tone(180, 0.3, { type: "sawtooth", vol: 0.13, delay: 0.2 }); },
+    fanfara() {
+      [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, { type: "sawtooth", vol: 0.14, delay: i * 0.15 }));
+      [523, 659, 784, 1047].forEach(f => tone(f, 0.9, { type: "sawtooth", vol: 0.1, delay: 0.7 }));
+      [1319, 1568, 2093].forEach((f, i) => tone(f, 0.15, { type: "triangle", vol: 0.12, delay: 1.0 + i * 0.1 }));
+    },
+  };
+
+  // Nahrávky hlasu ze složky zvuky/. jmena je seznam názvů souborů bez .mp3
+  function nactiHlas(slozka, jmena) {
+    jmena.forEach(n => { const a = new Audio(slozka + n + ".mp3"); a.preload = "auto"; voices[n] = a; });
+  }
+
+  // rekni("spravne") vybere náhodně spravne1..spravne9, pokud přesný název neexistuje.
+  // Vrací Promise, který skončí s koncem nahrávky.
+  function rekni(jmeno, { delay = 0, interrupt = true } = {}) {
+    return new Promise(resolve => {
+      if (muted) return resolve();
+      const moznosti = voices[jmeno] ? [jmeno]
+        : Object.keys(voices).filter(n => n.startsWith(jmeno) && /^\d$/.test(n.slice(jmeno.length)));
+      if (!moznosti.length) return resolve();
+      setTimeout(() => {
+        if (muted) return resolve();
+        const el = voices[moznosti[(Math.random() * moznosti.length) | 0]];
+        if (interrupt && current) current.pause();
+        el.currentTime = 0; current = el;
+        el.onended = () => resolve();
+        el.play().catch(() => resolve());
+        setTimeout(resolve, 8000);
+      }, delay);
+    });
+  }
+  function zastav() { if (current) current.pause(); }
+
+  // Safari a mobily povolí přehrát každou nahrávku až po dotyku: odemkneme všechny naráz.
+  function odemkni() {
+    if (odemceno) return; odemceno = true;
+    audio();
+    Object.values(voices).forEach(el => {
+      el.muted = true;
+      const pr = el.play();
+      const hotovo = () => { el.pause(); el.currentTime = 0; el.muted = false; };
+      if (pr && pr.then) pr.then(hotovo, () => { el.muted = false; }); else hotovo();
+    });
+  }
+  window.addEventListener("pointerdown", odemkni, { passive: true });
+
+  function nastavTlacitkoZvuku(btn) {
+    btn.onclick = () => {
+      muted = !muted; btn.textContent = muted ? "🔇" : "🔊";
+      if (muted) zastav(); else zvuky.klik();
+    };
+  }
+
+  // ---------- Konfety a nápis ----------
+  function vytvorVrstvy() {
+    if (document.getElementById("confetti")) return;
+    const cv = document.createElement("canvas"); cv.id = "confetti";
+    const bn = document.createElement("div"); bn.id = "banner";
+    document.body.append(cv, bn);
+  }
+
+  function oslava(velka, text) {
+    vytvorVrstvy();
+    const cv = document.getElementById("confetti"), ctx = cv.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const barvy = ["#ff6b6b", "#ffd43b", "#51cf66", "#4dabf7", "#da77f2", "#ff922b"];
+    const dily = [];
+    const salvy = velka ? 3 : 2;
+    for (let b = 0; b < salvy; b++) {
+      const cx = innerWidth * (salvy === 2 ? 0.25 + b * 0.5 : 0.2 + b * 0.3);
+      for (let i = 0; i < (velka ? 90 : 70); i++) {
+        const a = Math.random() * Math.PI * 2, v = 6 + Math.random() * 9;
+        dily.push({ x: cx, y: innerHeight * 0.45, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 6,
+          w: 6 + Math.random() * 8, h: 4 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .4,
+          c: barvy[(Math.random() * barvy.length) | 0], zpozdeni: b * 12 });
+      }
+    }
+    for (let i = 0; i < 40; i++)
+      dily.push({ x: Math.random() * innerWidth, y: -20 - Math.random() * 200, vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3,
+        w: 6 + Math.random() * 8, h: 4 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .3,
+        c: barvy[(Math.random() * barvy.length) | 0], zpozdeni: 20 });
+    const id = ++confettiRun; let f = 0;
+    (function tik() {
+      if (id !== confettiRun) return;
+      ctx.clearRect(0, 0, innerWidth, innerHeight); f++;
+      let zije = false;
+      for (const p of dily) {
+        if (f < p.zpozdeni) { zije = true; continue; }
+        p.vy += 0.28; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        if (p.y < innerHeight + 30) zije = true; else continue;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+      }
+      if (zije && f < 300) requestAnimationFrame(tik); else ctx.clearRect(0, 0, innerWidth, innerHeight);
+    })();
+    const bn = document.getElementById("banner");
+    bn.textContent = text || "🎉 Hurá! 🎉";
+    bn.classList.remove("show"); void bn.offsetWidth; bn.classList.add("show");
+  }
+  function uklidOslavu() {
+    confettiRun++;
+    const cv = document.getElementById("confetti");
+    if (cv) cv.getContext("2d").clearRect(0, 0, 1e5, 1e5);
+    const bn = document.getElementById("banner"); if (bn) bn.classList.remove("show");
+  }
+
+  function uloz(klic, hodnota) { try { localStorage.setItem(klic, JSON.stringify(hodnota)); } catch (e) {} }
+  function nacti(klic, vychozi) { try { const v = localStorage.getItem(klic); return v ? JSON.parse(v) : vychozi; } catch (e) { return vychozi; } }
+
+  return { sleep, tone, zvuky, nactiHlas, rekni, zastav, nastavTlacitkoZvuku, oslava, uklidOslavu, uloz, nacti,
+           get ztlumeno() { return muted; } };
+})();
