@@ -69,6 +69,16 @@ for i, t in enumerate(["Řekni, co bude dál.", "Který obrázek patří na kone
     pridej("rady", f"otazka{i}", "[curious]", t)
 pridej("rady", "konec", "[very excited, cheering]", "Hotovo! Jsi opravdová šikulka!")
 
+# ---------- Sčítání ----------
+pridej("scitani", "ahoj", "[cheerfully]", "Ahoj! Spočítej, kolik to je dohromady, a vyber správné číslo.")
+for i, t in enumerate(["Správně!", "Výborně!", "To je ono!", "Skvělé!"], 1):
+    pridej("scitani", f"spravne{i}", "[very excited]", t)
+for i, t in enumerate(["To není ono. Zkus to znovu!", "Spočítej to ještě jednou."], 1):
+    pridej("scitani", f"zkus{i}", "[friendly]", t)
+for i, t in enumerate(["Kolik to je dohromady?", "Kolik to bude, když to sečteš?", "Spočítej, kolik to je dohromady."], 1):
+    pridej("scitani", f"otazka{i}", "[curious]", t)
+pridej("scitani", "konec", "[very excited, cheering]", "Hotovo! Jsi skvělý počtář!")
+
 def multipart(soubor):
     h = "----hranice"
     telo = (f'--{h}\r\nContent-Disposition: form-data; name="model_id"\r\n\r\nscribe_v1\r\n'
