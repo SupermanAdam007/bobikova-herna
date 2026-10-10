@@ -1,6 +1,8 @@
-# Hry pro prvňáčky
+# Bobíkova herna
 
-Podklady k prezentaci o programování pro děti v první třídě a sada her, které si děti mohou zahrát doma v prohlížeči (i na mobilu). Rozcestník s obrázky her je v `index.html` a hry jsou rozdělené podle ročníku (1. až 5. třída, zatím jsou hotové hry pro 1. třídu). QR kód vede právě na rozcestník.
+Učící hry pro děti základní školy s maskotem robotem Bobíkem, plus podklady k prezentaci pro první třídu. Hry si děti mohou zahrát doma v prohlížeči (i na mobilu). Rozcestník s obrázky her je v `index.html` a hry jsou rozdělené podle ročníku (1. až 5. třída, zatím jsou hotové hry pro 1. třídu). QR kód vede právě na rozcestník.
+
+Adresa po zapnutí GitHub Pages: https://supermanadam007.github.io/bobikova-herna/
 
 ## Hry pro 1. třídu
 - **Robot Bobík** (`robot/`): dítě poskládá kroky (nahoru, dolů, doleva, doprava), čemuž říkáme program, a pak ho spustí. Když robot spadne, program se opraví a jde se dál. 7 úrovní.

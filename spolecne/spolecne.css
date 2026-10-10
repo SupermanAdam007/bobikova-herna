@@ -10,7 +10,7 @@ body {
 a { color: inherit; }
 #top { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; flex: none; }
 #top h1 { margin: 0; font-size: 20px; }
-.domu { text-decoration: none; background: #3b4a8f; border-radius: 14px; padding: 3px 10px; font-size: 14px; font-weight: bold; }
+.domu { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; background: #3b4a8f; border-radius: 14px; padding: 3px 10px; font-size: 14px; font-weight: bold; }
 .hvezdy { font-size: 14px; letter-spacing: 1px; }
 .kulate { width: 30px; height: 30px; border-radius: 50%; border: none; background: #3b4a8f; color: #fff; font-size: 16px; cursor: pointer; padding: 0; }
 .tlacitko {
@@ -45,3 +45,5 @@ a { color: inherit; }
 }
 @keyframes zatres { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 @keyframes pulz { 0%,100% { transform: scale(.94); } 50% { transform: scale(1.04); } }
+
+.domu .logo { height: 26px; width: 26px; border-radius: 50%; border: 2px solid #ffe066; object-fit: cover; }

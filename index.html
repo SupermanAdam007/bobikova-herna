@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hry pro školáky</title>
+<title>Bobíkova herna</title>
+<link rel="icon" type="image/png" href="obrazky/bobik-ikona.png">
+<link rel="apple-touch-icon" href="obrazky/bobik-ikona.png">
+
 <meta name="description" content="Hry pro děti na prvním stupni: programování, abeceda a psaní českých písmen.">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -12,8 +15,10 @@
     margin: 0; font-family: "Trebuchet MS", "Comic Sans MS", sans-serif; background: #1f2a5a; color: #fff;
     height: 100dvh; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 10px;
   }
-  h1 { margin: 0; text-align: center; font-size: clamp(22px, 5.5dvh, 44px); flex: none; }
-  p.podtitul { margin: 0; text-align: center; font-size: clamp(14px, 2.6dvh, 20px); flex: none; opacity: .95; }
+  #hlavicka { flex: none; display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .maskot { height: clamp(64px, 12dvh, 120px); width: clamp(64px, 12dvh, 120px); border-radius: 50%; border: 4px solid #ffe066; object-fit: cover; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
+  h1 { margin: 0; font-size: clamp(24px, 5.5dvh, 46px); }
+  p.podtitul { margin: 2px 0 0; font-size: clamp(14px, 2.6dvh, 22px); opacity: .95; }
   main#hry { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; grid-auto-rows: 1fr; gap: 10px; max-width: 1100px; width: 100%; margin: 0 auto; }
   a.hra {
     display: flex; flex-direction: row; align-items: stretch; min-height: 0; background: #fff; color: #1f2a5a; text-decoration: none;
@@ -26,9 +31,9 @@
   .text span { font-size: clamp(13px, 2.4dvh, 20px); line-height: 1.2; }
   .text b { align-self: flex-start; background: #e03131; color: #fff; border-radius: 14px; padding: 4px 14px; font-size: clamp(14px, 2.6dvh, 22px); margin-top: 2px; }
   @media (orientation: landscape) and (min-width: 700px) {
-    main#hry { grid-template-columns: repeat(var(--sloupce, 3), 1fr); grid-auto-rows: auto; }
+    main#hry { grid-template-columns: repeat(var(--sloupce, 3), 1fr); grid-auto-rows: auto; align-content: center; align-items: start; }
     a.hra { flex-direction: column; }
-    a.hra img { flex: 1 1 auto; width: 100%; height: auto; min-height: 0; object-fit: cover; }
+    a.hra img { flex: 0 1 auto; width: 100%; height: auto; max-height: 62%; aspect-ratio: 3 / 2; min-height: 0; object-fit: cover; }
     .text { flex: none; }
   }
   #tridy { flex: none; display: flex; gap: 6px; justify-content: center; max-width: 1100px; width: 100%; margin: 0 auto; }
@@ -52,12 +57,14 @@
 </style>
 </head>
 <body>
-  <h1>🎮 Hry pro školáky</h1>
-  <p class="podtitul" id="podtitul">Vyber si třídu a hru.</p>
+  <header id="hlavicka">
+    <img src="obrazky/bobik.jpg" alt="Robot Bobík mává" class="maskot">
+    <div><h1>Bobíkova herna</h1><p class="podtitul" id="podtitul">Ahoj, já jsem Bobík! Vyber si hru.</p></div>
+  </header>
   <div id="tridy"></div>
   <main id="hry"></main>
   <footer>
-    <div>Hry nic neodesílají na internet a neptají se na jména.</div>
+    <div>Bobíkova herna nic neodesílá na internet a neptá se na jména.</div>
     <div class="rodice">Rodiče, přidejte si mě na LinkedIn: <a href="https://www.linkedin.com/in/adam-pavlat/" target="_blank" rel="noopener">Adam Pavlát</a></div>
   </footer>
 <script>
@@ -87,7 +94,7 @@ function vykresli() {
   });
   const hry = HRY.filter(h => h.trida.includes(trida));
   const m = $("hry"); m.innerHTML = "";
-  $("podtitul").textContent = hry.length ? "Vyber si hru a klepni na ni." : "Tady zatím nic není.";
+  $("podtitul").textContent = hry.length ? "Ahoj, já jsem Bobík! Vyber si hru." : "Tady zatím nic není, ale Bobík na tom pracuje.";
   if (!hry.length) {
     m.style.gridTemplateColumns = "1fr";
     m.innerHTML = '<div class="brzy"><div class="velke">🚧</div><div>Hry pro ' + trida + '. třídu se ještě chystají.<br>Zatím si můžeš zahrát hry pro 1. třídu.</div><button id="zpet">Hry pro 1. třídu</button></div>';

@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Robot Bobík</title>
+<title>Robot Bobík | Bobíkova herna</title>
+<link rel="icon" type="image/png" href="../obrazky/bobik-ikona.png">
+<link rel="apple-touch-icon" href="../obrazky/bobik-ikona.png">
+
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
@@ -114,11 +117,13 @@
     #program { height: 84px; }
     h1 { font-size: 16px; }
   }
+  .domu { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: #fff; background: #3b4a8f; border-radius: 14px; padding: 3px 10px; font-size: 14px; font-weight: bold; }
+  .domu .logo { height: 26px; width: 26px; border-radius: 50%; border: 2px solid #ffe066; object-fit: cover; }
 </style>
 </head>
 <body>
   <div id="top">
-    <a href="../" style="text-decoration:none;color:#fff;background:#3b4a8f;border-radius:14px;padding:3px 10px;font-size:14px;font-weight:bold">🏠 Hry</a>
+    <a class="domu" href="../"><img class="logo" src="../obrazky/bobik.jpg" alt=""> Herna</a>
     <h1>🤖 Robot Bobík</h1>
     <div id="levelInfo">Úroveň 1</div>
     <div id="stars"></div>
