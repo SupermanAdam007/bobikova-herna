@@ -50,10 +50,22 @@
   }
   .brzy .velke { font-size: clamp(48px, 12dvh, 110px); }
   .brzy button { border: none; border-radius: 16px; padding: 10px 22px; font-size: clamp(16px, 3dvh, 24px); font-family: inherit; font-weight: bold; background: #e03131; color: #fff; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
-  footer { flex: none; text-align: center; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
-  footer > div:first-child { opacity: .8; }
-  .rodice { font-size: clamp(13px, 2.2dvh, 18px); }
-  .rodice a { color: #1f2a5a; background: #ffe066; border-radius: 12px; padding: 3px 12px; font-weight: bold; text-decoration: none; display: inline-block; }
+  footer { flex: none; text-align: center; font-size: 12px; opacity: .8; }
+  #rodice {
+    flex: none; margin: 4px -10px -10px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: #141c40; border-top: 2px solid #3b4a8f;
+    text-align: center; font-size: clamp(12px, 2dvh, 16px); color: #c9d0f2;
+  }
+  #rodice button { font: inherit; font-weight: bold; color: #ffe066; background: none; border: none; padding: 0; text-decoration: underline; cursor: pointer; }
+  #zavora { position: fixed; inset: 0; background: rgba(10,14,38,.85); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  #zavora.otevrena { display: flex; }
+  #zavora .okno { background: #fff; color: #1f2a5a; border-radius: 20px; padding: 18px; max-width: 380px; width: 100%; text-align: center; border: 4px solid #ffe066; display: flex; flex-direction: column; gap: 10px; }
+  #zavora h3 { margin: 0; font-size: 22px; }
+  #zavora p { margin: 0; font-size: 16px; line-height: 1.3; }
+  #zavora input { font: inherit; font-size: 26px; text-align: center; width: 8ch; align-self: center; border: 3px solid #3b4a8f; border-radius: 12px; padding: 6px; color: #1f2a5a; }
+  #zavora .tlacitka { display: flex; gap: 8px; justify-content: center; }
+  #zavora .tlacitka button { font: inherit; font-weight: bold; font-size: 16px; border: none; border-radius: 14px; padding: 10px 18px; cursor: pointer; background: #e03131; color: #fff; }
+  #zavora .tlacitka button.sede { background: #dfe3f5; color: #1f2a5a; }
+  #zavora .chyba { color: #c92a2a; font-weight: bold; min-height: 1.3em; }
 </style>
 </head>
 <body>
@@ -63,10 +75,17 @@
   </header>
   <div id="tridy"></div>
   <main id="hry"></main>
-  <footer>
-    <div>Bobíkova herna nic neodesílá na internet a neptá se na jména.</div>
-    <div class="rodice">Rodiče, přidejte si mě na LinkedIn: <a href="https://www.linkedin.com/in/adam-pavlat/" target="_blank" rel="noopener">Adam Pavlát</a></div>
-  </footer>
+  <footer>Bobíkova herna nic neodesílá na internet a neptá se na jména.</footer>
+  <div id="rodice">Pro rodiče: autor her <button id="otevriZavoru" type="button">Adam Pavlát</button></div>
+  <div id="zavora" role="dialog" aria-modal="true" aria-labelledby="zavNadpis">
+    <div class="okno">
+      <h3 id="zavNadpis">Jen pro dospělé</h3>
+      <p>Tohle tě pošle mimo hry na LinkedIn. Rodiče, potvrďte věk zadáním roku narození.</p>
+      <input id="rok" type="text" inputmode="numeric" maxlength="4" placeholder="rok" autocomplete="off" aria-label="Rok narození">
+      <div class="chyba" id="zavChyba" aria-live="polite"></div>
+      <div class="tlacitka"><button id="zavPokracuj" type="button">Pokračovat</button><button id="zavZpet" type="button" class="sede">Zpět ke hrám</button></div>
+    </div>
+  </div>
 <script>
 // Hry podle ročníku: stačí přidat položku do HRY a nastavit třídu (nebo víc tříd najednou).
 const HRY = [
@@ -110,6 +129,24 @@ function vykresli() {
   });
 }
 vykresli();
+
+// Ochrana dětí: odkaz na LinkedIn se otevře až po zadání roku narození dospělého. Rok se nikam neukládá ani neodesílá.
+const LINKEDIN = "https://www.linkedin.com/in/adam-pavlat/";
+const zavora = $("zavora");
+function zavriZavoru() { zavora.classList.remove("otevrena"); $("rok").value = ""; $("zavChyba").textContent = ""; }
+$("otevriZavoru").onclick = () => { zavora.classList.add("otevrena"); $("rok").focus(); };
+$("zavZpet").onclick = zavriZavoru;
+zavora.onclick = e => { if (e.target === zavora) zavriZavoru(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") zavriZavoru(); });
+function potvrdRok() {
+  const rok = parseInt($("rok").value, 10), letos = new Date().getFullYear();
+  if (!(rok >= 1900 && rok <= letos)) { $("zavChyba").textContent = "Zadejte rok narození čtyřmi číslicemi."; return; }
+  if (letos - rok < 18) { $("zavChyba").textContent = "Tohle je jen pro dospělé. Vrať se ke hrám."; return; }
+  zavriZavoru();
+  window.open(LINKEDIN, "_blank", "noopener");
+}
+$("zavPokracuj").onclick = potvrdRok;
+$("rok").onkeydown = e => { if (e.key === "Enter") potvrdRok(); };
 </script>
 </body>
 </html>
