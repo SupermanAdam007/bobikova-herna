@@ -77,7 +77,7 @@ for i, t in enumerate(["To není ono. Zkus to znovu!", "Spočítej to ještě je
     pridej("scitani", f"zkus{i}", "[friendly]", t)
 for i, t in enumerate(["Kolik to je dohromady?", "Kolik to bude, když to sečteš?", "Spočítej, kolik to je dohromady."], 1):
     pridej("scitani", f"otazka{i}", "[curious]", t)
-pridej("scitani", "konec", "[very excited, cheering]", "Hotovo! Jsi skvělý počtář!")
+pridej("scitani", "konec", "[very excited, cheering]", "Hotovo! Počítáš opravdu skvěle, jsi opravdová matematická jednička!")
 
 def multipart(soubor):
     h = "----hranice"

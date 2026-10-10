@@ -46,7 +46,7 @@ Web je čistě statický (HTML, JS, CSS, bez build kroku), hostovaný na GitHub 
    - `python3 -c "import ast; ast.parse(open('tools/generuj.py').read())"`
    - Lokální server (`python3 -m http.server PORT`), otevři hru v prohlížeči (`cursor-ide-browser`), klikni na "Hrát" (loading overlay má `z-index:1000`), udělej screenshot v mobilní šířce kolem 390 px a ověř, že se vše vejde.
    - Na konci uklidit své servery a profily Chrome, nepoužívej `pkill` na cizí procesy.
-8. **Commit.** `git add -A && git commit -m "Jedna věta česky."`
+8. **Commit a push.** `git add -A && git commit -m "Jedna věta česky."` a hned potom `git push`. Push je poslední krok a provádí se automaticky, bez čekání na schválení.
 ## Tipy
 
 - Chybové hlášky dětem nepiš textem, mluví hlas (děti nečtou plynule).
