@@ -15,7 +15,8 @@ Hry nic neodesílají na internet, nemají přihlášení ani reklamy. Jediné, 
 - `index.html`: rozcestník s výběrem třídy (obrázky v `obrazky/`). Novou hru přidáš do seznamu `HRY` v `index.html` a nastavíš jí třídu, např. `trida: [2]`.
 - `robot/`, `abeceda/`, `psani/`: jednotlivé hry, každá má `index.html` a složku `zvuky/` s hlasem (mp3)
 - `spolecne/`: sdílený kód (`spolecne.js`, `spolecne.css`) a česká abeceda s příklady (`pismena.js`)
-- `tools/generuj.py`: znovu vygeneruje hlas pro Abecedu a Psaní přes ElevenLabs (model `eleven_v3`, nejlepší čeština)
+- `tools/generuj-lokalne.py`: aktuální hlas Abecedy a Psaní, český hlas Zuzana z macOS (správná výslovnost ě š č ř ž ý á í, zdarma, bez internetu)
+- `tools/generuj.py`: původní verze přes ElevenLabs, dnes slouží jen jako seznam textů nahrávek
 - `robot/generuj-hlas.py`: totéž pro Robota Bobíka
 - `psani/PlaywriteCZ.ttf`: písmo Playwrite CZ (licence SIL OFL, viz `psani/OFL.txt`)
 
