@@ -424,7 +424,7 @@ const PISMENA = [
 
 // Slova k obtahování ve hře Psaní (id je jen název souboru s hlasem).
 const SLOVA = [
- {"id":"mama","text":"máma"},{"id":"tata","text":"táta"},{"id":"deda","text":"děda"},{"id":"babi","text":"babi"},
- {"id":"kocka","text":"kočka"},{"id":"pes","text":"pes"},{"id":"zaba","text":"žába"},{"id":"skola","text":"škola"},
- {"id":"reka","text":"řeka"},{"id":"cap","text":"čáp"}
+ {"id":"mama","text":"máma"},{"id":"deda","text":"děda"},{"id":"kocka","text":"kočka"},{"id":"skola","text":"škola"},
+ {"id":"reka","text":"řeka"},{"id":"oko","text":"oko"},{"id":"hlava","text":"hlava"},{"id":"ruka","text":"ruka"},
+ {"id":"noha","text":"noha"},{"id":"kolo","text":"kolo"}
 ];
