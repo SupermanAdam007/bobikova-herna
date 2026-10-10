@@ -145,6 +145,22 @@ function vykresli() {
 }
 vykresli();
 
+// Bobík pozdraví hlasem. Prohlížeče zakazují zvuk před prvním dotykem, takže se pozdrav spustí
+// hned, když to jde, jinak při prvním dotyku. Po návratu z hry se v téže návštěvě už nezopakuje.
+const pozdrav = new Audio("zvuky/ahoj.mp3");
+function pozdrav_prehraj() { pozdrav.currentTime = 0; return pozdrav.play(); }
+let uzPozdravil = false;
+try { uzPozdravil = sessionStorage.getItem("pozdraveno") === "1"; } catch (e) {}
+function oznacPozdraveno() { uzPozdravil = true; try { sessionStorage.setItem("pozdraveno", "1"); } catch (e) {} }
+if (!uzPozdravil) {
+  pozdrav_prehraj().then(oznacPozdraveno).catch(() => {
+    const prvni = () => { if (!uzPozdravil) { pozdrav_prehraj().then(oznacPozdraveno).catch(() => {}); } };
+    document.addEventListener("pointerdown", prvni, { once: true });
+  });
+}
+document.querySelector(".maskot").onclick = () => pozdrav_prehraj().catch(() => {});
+document.querySelector(".maskot").style.cursor = "pointer";
+
 // Ochrana dětí: odkaz na LinkedIn se otevře až po zadání roku narození dospělého. Rok se nikam neukládá ani neodesílá.
 const LINKEDIN = "https://www.linkedin.com/in/adam-pavlat/";
 const zavora = $("zavora");
