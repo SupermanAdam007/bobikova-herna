@@ -69,7 +69,7 @@ Hry.nastavTlacitkoZvuku($("zvuk"));
 const jmena = ["ahoj", "skvele1", "skvele2", "skvele3", "zkus1", "zkus2", "konec"];
 PISMENA.forEach(p => jmena.push("obtahni_" + p.id));
 SLOVA.forEach(s => jmena.push("slovo_" + s.id));
-Hry.nactiHlas("zvuky/", jmena);
+Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
 
 const PRAH_POKRYTI = 0.75;   // kolik z písmene musí být obtažené
 const MAX_MIMO = 0.40;
@@ -317,8 +317,6 @@ function nastavRezim(r) {
 }
 document.querySelectorAll("#zalozky button").forEach(b => b.onclick = () => { Hry.zvuky.klik(); nastavRezim(b.dataset.m); });
 
-let pozdraveno = false;
-window.addEventListener("pointerdown", () => { if (pozdraveno) return; pozdraveno = true; Hry.rekni("ahoj", { delay: 600 }); });
 
 let casovac;
 window.addEventListener("resize", () => { clearTimeout(casovac); casovac = setTimeout(() => {

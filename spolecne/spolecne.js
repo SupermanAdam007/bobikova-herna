@@ -35,13 +35,67 @@ const Hry = (() => {
   };
 
   // Nahrávky hlasu ze složky zvuky/. jmena je seznam názvů souborů bez .mp3.
-  // Nic se nestahuje předem: jeden společný přehrávač načte nahrávku až ve chvíli, kdy je potřeba.
-  // (Dřív se stahovalo a "odemykalo" přes sto souborů naráz, hra se dlouho načítala a na mobilu zazněla všechna písmena najednou.)
+  // Hra se nejdřív načte pod obrazovkou "Bobík se připravuje": všechny nahrávky se stáhnou, uloží do
+  // mezipaměti prohlížeče (Cache API, příště je to hned) a změní se na lokální adresy, takže se pak
+  // přehrávají bez čekání. Na konci je velké tlačítko "Hrát", které zároveň odemkne zvuk na mobilu.
+  // Změníš-li nahrávky, zvyš VERZE_HLASU, ať si je uživatelé stáhnou znovu.
+  const VERZE_HLASU = "2026-10-10a";
   const player = new Audio();
-  let slozkaHlasu = "";
-  function nactiHlas(slozka, jmena) {
-    slozkaHlasu = slozka;
+
+  function obrazovkaNacitani(logo) {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:1000;background:#1f2a5a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;font-family:'Trebuchet MS','Comic Sans MS',sans-serif";
+    ov.innerHTML =
+      '<img alt="" src="' + logo + '" style="width:min(32vw,28dvh);height:min(32vw,28dvh);border-radius:50%;border:5px solid #ffe066;object-fit:cover">' +
+      '<div class="t" style="font-size:clamp(20px,5dvh,34px);font-weight:bold">Bobík se připravuje...</div>' +
+      '<div style="width:min(80vw,380px);height:18px;border-radius:9px;background:#3b4a8f;overflow:hidden"><div class="p" style="height:100%;width:0;background:#ffe066;transition:width .15s"></div></div>' +
+      '<div class="c" style="font-size:16px;opacity:.85">0 %</div>';
+    document.body.appendChild(ov);
+    return {
+      postup(v) { ov.querySelector(".p").style.width = Math.round(v * 100) + "%"; ov.querySelector(".c").textContent = Math.round(v * 100) + " %"; },
+      hotovo() {
+        return new Promise(resolve => {
+          ov.querySelector(".t").textContent = "Hotovo! Můžeme hrát.";
+          ov.querySelector(".c").innerHTML = '<button type="button" style="font:inherit;font-weight:bold;font-size:clamp(22px,5dvh,34px);background:#e03131;color:#fff;border:none;border-radius:22px;padding:12px 40px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.4)">Hrát ▶</button>';
+          ov.querySelector(".p").parentNode.style.display = "none";
+          ov.querySelector("button").onclick = () => { odemkni(); ov.remove(); resolve(); };
+        });
+      },
+    };
+  }
+
+  async function stahni(url, mezipamet) {
+    const klic = url + "?v=" + VERZE_HLASU;
+    try {
+      let odp = mezipamet && await mezipamet.match(klic);
+      if (!odp) {
+        odp = await fetch(url);
+        if (!odp.ok) throw new Error(odp.status);
+        if (mezipamet) { try { await mezipamet.put(klic, odp.clone()); } catch (e) {} }
+      }
+      return URL.createObjectURL(await odp.blob());
+    } catch (e) { return url; }   // nepovedlo se (třeba soubor otevřený z disku): přehraje se přímo ze souboru
+  }
+
+  // Vrací Promise, který skončí, až jsou nahrávky načtené a dítě klepne na "Hrát".
+  async function nactiHlas(slozka, jmena, { logo = "../obrazky/bobik.jpg" } = {}) {
     jmena.forEach(n => { voices[n] = slozka + n + ".mp3"; });
+    const ov = obrazovkaNacitani(logo);
+    let mezipamet = null;
+    try { mezipamet = window.caches ? await caches.open("bobik-hlas") : null; } catch (e) {}
+    if (mezipamet) {   // smaž nahrávky starších verzí
+      try { for (const k of await mezipamet.keys()) if (!k.url.endsWith("?v=" + VERZE_HLASU)) await mezipamet.delete(k); } catch (e) {}
+    }
+    const fronta = jmena.slice(); let hotove = 0;
+    const pracovnik = async () => {
+      while (fronta.length) {
+        const n = fronta.shift();
+        voices[n] = await stahni(voices[n], mezipamet);
+        ov.postup(++hotove / jmena.length);
+      }
+    };
+    await Promise.all(Array.from({ length: 6 }, pracovnik));
+    await ov.hotovo();
   }
 
   // rekni("spravne") vybere náhodně spravne1..spravne9, pokud přesný název neexistuje.

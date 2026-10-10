@@ -158,6 +158,7 @@
 
 <canvas id="confetti"></canvas>
 <div id="banner"></div>
+<script src="../spolecne/spolecne.js"></script>
 <script>
 // S = start, G = cíl, # = cesta, . = propast. Šířka 6, výška 5.
 // dir: kam se robot na začátku dívá (0 nahoru, 1 doprava, 2 dolů, 3 doleva)
@@ -227,26 +228,8 @@ function tone(freq, dur, { type = "square", vol = 0.15, delay = 0, slide = 0 } =
 }
 // ---------- Hlas robota Bobíka (předgenerované nahrávky ze složky zvuky/) ----------
 const VOICE_FILES = ["ahoj","start1","start2","start3","U","D","L","R","pad1","pad2","pad3","oprava","malo","cil1","cil2","cil3","vse","dalsi","plny","prazdny"];
-const voices = {};
-VOICE_FILES.forEach(n => { const a = new Audio("zvuky/" + n + ".mp3"); a.preload = "auto"; voices[n] = a; });
-let currentVoice = null;
-// voice("cil") vybere náhodně cil1..cil3; vrací Promise, který skončí s koncem nahrávky
-function voice(name, { delay = 0, interrupt = true } = {}) {
-  return new Promise(resolve => {
-    if (muted) return resolve();
-    const opts = VOICE_FILES.filter(n => n === name || (n.startsWith(name) && /^\d$/.test(n.slice(name.length))));
-    if (!opts.length) return resolve();
-    setTimeout(() => {
-      if (muted) return resolve();
-      const a = opts[(Math.random() * opts.length) | 0];
-      if (interrupt && currentVoice) { currentVoice.pause(); }
-      const el = voices[a]; el.currentTime = 0; currentVoice = el;
-      el.onended = () => resolve();
-      el.play().catch(() => resolve());
-      setTimeout(resolve, 6000);
-    }, delay);
-  });
-}
+// Nahrávky načítá, ukládá do mezipaměti a přehrává společný kód (spolecne/spolecne.js).
+function voice(name, opts) { return muted ? Promise.resolve() : Hry.rekni(name, opts); }
 const DIR_NOTE = { U: 660, D: 440, L: 520, R: 780 };
 const sfx = {
   click(c) { tone(DIR_NOTE[c], 0.12, { type: "triangle", vol: 0.25 }); },
@@ -503,20 +486,9 @@ function fail() {
   running = false; setEnabled(true);
 }
 
-$("mute").onclick = () => { muted = !muted; if (muted && currentVoice) currentVoice.pause(); $("mute").textContent = muted ? "🔇" : "🔊"; if (!muted) sfx.click("U"); };
-// uvítání robota při prvním dotyku (prohlížeče povolí zvuk až po kliknutí)
-let greeted = false;
-window.addEventListener("pointerdown", () => {
-  if (greeted) return; greeted = true;
-  // Safari a mobily povolí přehrát každou nahrávku až po "odemknutí" dotykem, tak je odemkneme všechny naráz
-  Object.values(voices).forEach(el => {
-    el.muted = true;
-    const pr = el.play();
-    const done = () => { el.pause(); el.currentTime = 0; el.muted = false; };
-    if (pr && pr.then) pr.then(done, () => { el.muted = false; }); else done();
-  });
-  if (level === 0 && !program.length) voice("ahoj", { delay: 600 });
-}, { once: false });
+$("mute").onclick = () => { muted = !muted; if (muted) Hry.zastav(); $("mute").textContent = muted ? "🔇" : "🔊"; if (!muted) sfx.click("U"); };
+// Nejdřív se načtou všechny hlasy (obrazovka "Bobík se připravuje"), pak robot pozdraví.
+Hry.nactiHlas("zvuky/", VOICE_FILES).then(() => { if (level === 0 && !program.length) voice("ahoj", { delay: 200 }); });
 window.addEventListener("resize", () => { placeRobot(); updateMarker(); });
 loadLevel(0);
 </script>

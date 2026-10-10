@@ -90,7 +90,7 @@ const KOL = 10; // počet otázek v jednom kole
 // nahrávky: karta_*, najdi_*, slovo_* + zpětná vazba
 const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "zkus1", "zkus2", "otazka", "konec"];
 PISMENA.forEach(p => { jmena.push("karta_" + p.id, "najdi_" + p.id); if (p.m3) jmena.push("slovo_" + p.id); });
-Hry.nactiHlas("zvuky/", jmena);
+Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
 Hry.nastavTlacitkoZvuku($("zvuk"));
 
 let rezim = "abeceda", vybrane = null, kolo = 0, body = 0, spravnaOdpoved = null, zamceno = false, chyba = false;
@@ -209,10 +209,6 @@ function nastavRezim(r) {
   else novaHra();
 }
 document.querySelectorAll("#zalozky button").forEach(b => b.onclick = () => { Hry.zvuky.klik(); nastavRezim(b.dataset.m); });
-
-// uvítání při prvním dotyku (prohlížeč povolí zvuk až po dotyku)
-let pozdraveno = false;
-window.addEventListener("pointerdown", e => { if (pozdraveno) return; pozdraveno = true; if (e.target.closest && e.target.closest("button")) return; if (rezim === "abeceda" && vybrane && vybrane.id === "a") Hry.rekni("ahoj", { delay: 600 }); });
 
 sestavMrizku(); nastavRezim("abeceda");
 </script>
