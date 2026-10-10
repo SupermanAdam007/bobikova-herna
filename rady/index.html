@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Co bude dál? | Bobíkova herna</title>
+<link rel="icon" type="image/png" href="../obrazky/bobik-ikona.png">
+<link rel="apple-touch-icon" href="../obrazky/bobik-ikona.png">
+<link rel="stylesheet" href="../spolecne/spolecne.css">
+<style>
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  #karta {
+    flex: 1; min-height: 0; background: #fff; color: #1f2a5a; border-radius: 16px; border: 4px solid #ffe066;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 6px; overflow: hidden;
+  }
+  #otazkaText { font-size: min(4.2dvh, 6.5vw); font-weight: bold; text-align: center; }
+  #rada { display: flex; justify-content: center; align-items: center; gap: calc(var(--vel, 40px) * .12); }
+  .prvek { font-size: var(--vel, 40px); line-height: 1.1; }
+  .diru {
+    width: calc(var(--vel, 40px) * 1.15); height: calc(var(--vel, 40px) * 1.3); border: 4px dashed #1f2a5a; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; font-size: calc(var(--vel, 40px) * .8); font-weight: bold; color: #c92a2a;
+    background: #fff3bf; animation: pulz 1.2s infinite;
+  }
+  .diru.hotovo { animation: none; border-style: solid; border-color: #2b8a3e; background: #d3f9d8; color: inherit; }
+  #moznosti { flex: none; height: 34%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .moznost {
+    border: 4px solid #fff; border-radius: 16px; font-size: min(13dvh, 20vw); font-family: inherit; line-height: 1;
+    cursor: pointer; background: #1864ab; box-shadow: 0 5px 0 rgba(0,0,0,.4); padding: 0;
+  }
+  .moznost:nth-child(2) { background: #c2255c; } .moznost:nth-child(3) { background: #2b8a3e; }
+  .moznost:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  .moznost.spatne { animation: zatres .4s; opacity: .35; pointer-events: none; }
+  .moznost.dobre { outline: 6px solid #ffe066; animation: pulz .5s 3; }
+  #opakuj { position: absolute; right: 8px; top: 8px; }
+  #karta { position: relative; }
+</style>
+</head>
+<body>
+  <div id="top">
+    <a class="domu" href="../index.html"><img class="logo" src="../obrazky/bobik.jpg" alt=""> Herna</a>
+    <h1>🔁 Co bude dál?</h1>
+    <span class="hvezdy" id="hvezdy"></span>
+    <button class="kulate" id="zvuk" title="Zvuk">🔊</button>
+  </div>
+
+  <div id="hlaska">Podívej se na řadu a vyber, co bude dál.</div>
+
+  <main>
+    <section id="karta">
+      <button class="kulate" id="opakuj" title="Poslechnout znovu" style="width:38px;height:38px">🔊</button>
+      <div id="otazkaText"></div>
+      <div id="rada"></div>
+    </section>
+    <div id="moznosti"></div>
+  </main>
+
+<script src="../spolecne/spolecne.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const KOL = 10; // počet řad v jedné hře
+
+// Obrázky podle témat. Každé kolo bere všechny prvky z jednoho tématu.
+const TEMATA = [
+  ["🐶", "🐱", "🐸", "🐵", "🐰", "🐻", "🐼", "🦊"],
+  ["🍎", "🍌", "🍇", "🍓", "🍊", "🍐", "🍒"],
+  ["🔴", "🟦", "🟢", "🟨", "🟣", "🟠", "⭐", "❤️"],
+  ["🚗", "🚌", "🚲", "🚂", "✈️", "🚀"],
+  ["🌸", "🌳", "☀️", "🌙", "🌈", "⭐"],
+];
+// Jednotka řady pro každé kolo: čím dál těžší
+const JEDNOTKY = ["AB", "AB", "AB", "AAB", "ABB", "AAB", "ABC", "ABC", "AABB", "ABCB"];
+
+const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "zkus1", "zkus2", "otazka1", "otazka2", "otazka3", "konec"];
+Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
+Hry.nastavTlacitkoZvuku($("zvuk"));
+
+let kolo = 0, body = 0, spravna = null, zamceno = false, chyba = false, pocetPrvku = 6;
+
+function hlaska(t, cls = "") { const h = $("hlaska"); h.textContent = t; h.className = cls; }
+const zamichej = pole => pole.slice().sort(() => Math.random() - .5);
+
+function velikost() {
+  const w = Math.min(innerWidth, 900) * 0.88, h = innerHeight * 0.2;
+  document.documentElement.style.setProperty("--vel", Math.floor(Math.min(w / (pocetPrvku * 1.2), h)) + "px");
+}
+addEventListener("resize", velikost);
+
+function novaHra() {
+  kolo = 0; body = 0;
+  $("hvezdy").textContent = "";
+  dalsiRada();
+}
+
+function dalsiRada() {
+  if (kolo >= KOL) return konec();
+  kolo++; zamceno = false; chyba = false;
+  const jednotka = JEDNOTKY[kolo - 1], d = jednotka.length;
+  const tema = zamichej(TEMATA[Math.floor(Math.random() * TEMATA.length)]);
+  const prvek = {};
+  [...new Set(jednotka)].forEach((p, i) => prvek[p] = tema[i]);
+  const videt = d * 2 + (d <= 3 ? 1 : 0);              // kolik prvků je vidět
+  const rada = Array.from({ length: videt }, (_, i) => prvek[jednotka[i % d]]);
+  spravna = prvek[jednotka[videt % d]];
+  // špatné možnosti: nejdřív jiné prvky z řady, pak ostatní z tématu
+  const jine = zamichej([...new Set(rada)].filter(e => e !== spravna));
+  const dalsi = zamichej(tema.filter(e => e !== spravna && !jine.includes(e)));
+  const spatne = [...jine, ...dalsi].slice(0, 2);
+
+  pocetPrvku = videt + 1; velikost();
+  const r = $("rada"); r.innerHTML = "";
+  rada.forEach(e => { const s = document.createElement("span"); s.className = "prvek"; s.textContent = e; r.appendChild(s); });
+  const diru = document.createElement("span"); diru.className = "diru"; diru.id = "diru"; diru.textContent = "?"; r.appendChild(diru);
+
+  const mozn = $("moznosti"); mozn.innerHTML = "";
+  zamichej([spravna, ...spatne]).forEach(e => {
+    const b = document.createElement("button");
+    b.className = "moznost"; b.textContent = e;
+    b.onclick = () => odpoved(e, b);
+    mozn.appendChild(b);
+  });
+  $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+  $("otazkaText").textContent = "Co bude dál? (" + kolo + "/" + KOL + ")";
+  hlaska("Podívej se na řadu a vyber, co bude dál.");
+  Hry.rekni("otazka", { delay: 250 });
+}
+$("opakuj").onclick = () => Hry.rekni("otazka");
+
+async function odpoved(e, btn) {
+  if (zamceno) return;
+  if (e === spravna) {
+    zamceno = true;
+    btn.classList.add("dobre");
+    const d = $("diru"); d.textContent = e; d.classList.add("hotovo");
+    if (!chyba) body++;
+    $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+    Hry.zvuky.spravne();
+    hlaska("✔ Správně!", "dobre");
+    await Hry.rekni("spravne", { delay: 200 });
+    await Hry.sleep(500);
+    dalsiRada();
+  } else {
+    chyba = true;
+    btn.classList.add("spatne");
+    Hry.zvuky.spatne();
+    hlaska("To není ono. Zkus to znovu!", "spatne");
+    Hry.rekni("zkus", { delay: 250 });
+  }
+}
+
+function konec() {
+  zamceno = true;
+  const vse = body === KOL;
+  $("rada").innerHTML = ""; $("otazkaText").textContent = vse ? "🏆" : "🎉";
+  hlaska("Hotovo! Máš " + body + " z " + KOL + " hvězdiček. Zahraj si znovu!", "dobre");
+  Hry.zvuky.fanfara();
+  Hry.oslava(vse, vse ? "🏆 Bezchybně! 🏆" : "🎉 Hotovo! 🎉");
+  Hry.rekni("konec", { delay: 1200 });
+  $("moznosti").innerHTML = '<button class="tlacitko" style="grid-column:1/4;font-size:24px" id="znovuHrat">🔄 Hrát znovu</button>';
+  $("znovuHrat").onclick = () => { Hry.uklidOslavu(); novaHra(); };
+}
+
+novaHra();
+</script>
+</body>
+</html>

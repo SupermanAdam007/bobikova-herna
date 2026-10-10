@@ -59,6 +59,16 @@ for p in PISMENA:
 for s in SLOVA:
     pridej("psani", "slovo_" + s["id"], "", f"Obtáhni slovo {s['text']}.")
 
+# ---------- Co bude dál? ----------
+pridej("rady", "ahoj", "[cheerfully]", "Ahoj! Podívej se na řadu a vyber, co bude dál.")
+for i, t in enumerate(["Správně!", "Výborně!", "To je ono!", "Skvělé!"], 1):
+    pridej("rady", f"spravne{i}", "[very excited]", t)
+for i, t in enumerate(["To není ono. Zkus to znovu!", "Podívej se na řadu ještě jednou."], 1):
+    pridej("rady", f"zkus{i}", "[friendly]", t)
+for i, t in enumerate(["Řekni, co bude dál.", "Který obrázek patří na konec řady?", "Co přijde jako další?"], 1):
+    pridej("rady", f"otazka{i}", "[curious]", t)
+pridej("rady", "konec", "[very excited, cheering]", "Hotovo! Jsi opravdová šikulka!")
+
 def multipart(soubor):
     h = "----hranice"
     telo = (f'--{h}\r\nContent-Disposition: form-data; name="model_id"\r\n\r\nscribe_v1\r\n'
