@@ -324,7 +324,9 @@ function find(ch) {
 function say(text, cls = "") { const m = $("msg"); m.textContent = text; m.className = cls; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+let autoDalsi = null;
 function loadLevel(n) {
+  clearTimeout(autoDalsi);
   level = n; program = []; running = false;
   board.innerHTML = "";
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -471,6 +473,11 @@ $("run").onclick = async () => {
     $("next").style.display = "block";
     $("next").textContent = level + 1 < LEVELS.length ? "Další úroveň ➡️" : "Hrát znovu od začátku 🔄";
     running = false;
+    // po chvíli se automaticky přejde na další úroveň (po poslední ne)
+    if (level + 1 < LEVELS.length) {
+      const cil = level + 1;
+      autoDalsi = setTimeout(() => { if (!running && level === cil - 1) { voice("dalsi"); loadLevel(cil); } }, 7000);
+    }
   } else {
     sfx.miss();
     await sleep(1200);
