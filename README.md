@@ -1,8 +1,8 @@
 # Hry pro prvňáčky
 
-Podklady k prezentaci o programování pro děti v první třídě a sada her, které si děti mohou zahrát doma v prohlížeči (i na mobilu). Rozcestník s obrázky her je v `index.html`, QR kód vede právě na něj.
+Podklady k prezentaci o programování pro děti v první třídě a sada her, které si děti mohou zahrát doma v prohlížeči (i na mobilu). Rozcestník s obrázky her je v `index.html` a hry jsou rozdělené podle ročníku (1. až 5. třída, zatím jsou hotové hry pro 1. třídu). QR kód vede právě na rozcestník.
 
-## Hry
+## Hry pro 1. třídu
 - **Robot Bobík** (`robot/`): dítě poskládá kroky (nahoru, dolů, doleva, doprava), čemuž říkáme program, a pak ho spustí. Když robot spadne, program se opraví a jde se dál. 7 úrovní.
 - **Abeceda** (`abeceda/`): všech 42 písmen české abecedy včetně `ch`, `ě`, `ř`, `ů`. Procházení abecedy s obrázky, hra "Najdi písmeno" podle hlasu a hra "Obrázek" (S jakým písmenem začíná slovo?). Samohlásky červeně, souhlásky modře.
 - **Psaní** (`psani/`): obtahování psacích písmen české abecedy prstem (malá, velká a slova) ve školním písmu Playwrite CZ. Hra vyhodnotí, kolik je obtaženo, a ukáže žlutě, co chybí.
@@ -10,7 +10,7 @@ Podklady k prezentaci o programování pro děti v první třídě a sada her, k
 Hry nic neodesílají na internet, nemají přihlášení ani reklamy. Jediné, co se ukládá, je v prohlížeči dítěte hvězdička u hotových písmen.
 
 ## Struktura
-- `index.html`: rozcestník (obrázky v `obrazky/`)
+- `index.html`: rozcestník s výběrem třídy (obrázky v `obrazky/`). Novou hru přidáš do seznamu `HRY` v `index.html` a nastavíš jí třídu, např. `trida: [2]`.
 - `robot/`, `abeceda/`, `psani/`: jednotlivé hry, každá má `index.html` a složku `zvuky/` s hlasem (mp3)
 - `spolecne/`: sdílený kód (`spolecne.js`, `spolecne.css`) a česká abeceda s příklady (`pismena.js`)
 - `tools/generuj.py`: znovu vygeneruje hlas pro Abecedu a Psaní přes ElevenLabs (model `eleven_v3`, nejlepší čeština)
