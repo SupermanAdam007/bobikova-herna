@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Bobík</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: "Trebuchet MS", "Comic Sans MS", sans-serif;
+    background: #1f2a5a; color: #fff; height: 100dvh; overflow: hidden;
+    display: flex; flex-direction: column; padding: 6px; gap: 6px;
+    user-select: none; touch-action: manipulation;
+  }
+  #top { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; flex: none; }
+  h1 { margin: 0; font-size: 20px; }
+  #levelInfo { font-size: 14px; background: #3b4a8f; padding: 3px 10px; border-radius: 14px; }
+  #stars { font-size: 14px; letter-spacing: 1px; }
+  #game { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+  #boardWrap { flex: 1; min-height: 0; container-type: size; display: flex; align-items: center; justify-content: center; }
+  #board {
+    --cell: max(20px, min((100cqw - 16px - 15px) / 6, (100cqh - 16px - 12px) / 5));
+    display: grid; grid-template-columns: repeat(6, var(--cell)); grid-template-rows: repeat(5, var(--cell));
+    gap: 3px; background: #fff; padding: 8px; border-radius: 14px; position: relative; flex: none;
+  }
+  .cell { border-radius: 8px; background: #050818; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cell) * .55); }
+  .cell.path { background: #ffd699; box-shadow: inset 0 -4px 0 #a86a1a; }
+  .cell.start { background: #6ee06e; box-shadow: inset 0 -4px 0 #2b8a2b; }
+  .cell.goal { background: #ffe14d; box-shadow: inset 0 -4px 0 #b38600; }
+  #robot {
+    position: absolute; width: var(--cell); height: var(--cell);
+    display: flex; align-items: center; justify-content: center;
+    transition: left .45s ease, top .45s ease, transform .35s ease, opacity .6s ease;
+    pointer-events: none; z-index: 5;
+  }
+  #robotInner { position: relative; width: 100%; height: 100%; transition: transform .35s ease; display:flex; align-items:center; justify-content:center; font-size: calc(var(--cell) * .62); }
+  #nose {
+    position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 15px solid #ff4d6d;
+  }
+  #marker {
+    position: absolute; width: var(--cell); height: var(--cell); border: 6px solid #d6336c; border-radius: 12px; background: rgba(255,255,255,.35);
+    box-shadow: 0 0 0 3px #fff, 0 0 0 6px #000;
+    z-index: 4; pointer-events: none; display: none; animation: pulse 1.1s ease-in-out infinite;
+    transition: left .25s ease, top .25s ease;
+  }
+  @keyframes pulse { 0%,100% { transform: scale(.82); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }
+  .chip.bad { background: #c92a2a !important; outline: 4px solid #fff; animation: shake .4s 3; }
+  .chip.bad::after { content: "✖"; position: absolute; right: 3px; bottom: 0; font-size: 12px; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  .chip.next { background: #ffe066; border: 3px solid #fff; color: #111; font-size: 26px; font-weight: 900; animation: pulse 1.1s ease-in-out infinite; cursor: default; }
+  #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+  #banner {
+    position: fixed; left: 50%; top: 32%; transform: translate(-50%, -50%) scale(0); z-index: 60; pointer-events: none;
+    font-size: clamp(34px, 11vw, 80px); font-weight: bold; text-align: center; white-space: nowrap;
+    color: #fff; text-shadow: 0 4px 0 #d9480f, 0 0 24px #ffd43b, 0 0 8px #000; opacity: 0;
+  }
+  #banner.show { animation: pop 2.6s ease-out forwards; }
+  @keyframes pop {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
+    15% { transform: translate(-50%, -50%) scale(1.25) rotate(4deg); opacity: 1; }
+    25% { transform: translate(-50%, -50%) scale(1) rotate(0); }
+    80% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+    100% { transform: translate(-50%, -60%) scale(1); opacity: 0; }
+  }
+  .cell.goal.win { animation: goalwin .5s ease-in-out 6; }
+  @keyframes goalwin { 50% { transform: scale(1.18); background: #fff3a0; } }
+  #robot.cheer #robotInner { animation: jump .45s ease-in-out 6; }
+  @keyframes jump { 50% { margin-top: -22%; } }
+  #robot.fall { transform: scale(0.1) rotate(540deg); opacity: 0; transition: transform .8s ease-in, opacity .8s ease-in; }
+
+  #side { flex: none; display: flex; flex-direction: column; gap: 6px; }
+  #msg { height: 46px; font-size: 15px; font-weight: bold; line-height: 1.15; background: #3b4a8f; border-radius: 12px; padding: 4px 10px; display:flex; align-items:center; overflow: hidden; }
+  #msg.good { background: #2b8a3e; }
+  #msg.bad { background: #b02525; }
+  #cmds { display: flex; gap: 6px; }
+  .cmd {
+    flex: 1; font-size: 13px; border: none; border-radius: 12px; padding: 5px 2px; cursor: pointer; color: #fff;
+    font-family: inherit; font-weight: bold; box-shadow: 0 3px 0 rgba(0,0,0,.35); transition: transform .08s;
+  }
+  .cmd:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,.35); }
+  .cmd .big { display:block; }
+  .cmd .big svg { width: 34px; height: 34px; }
+  .cmd.U { background: #2f9e44; } .cmd.D { background: #c2255c; } .cmd.L { background: #1c7ed6; } .cmd.R { background: #f08c00; }
+  #program {
+    height: 88px; background: #050818; border: 2px solid #fff; border-radius: 12px; padding: 5px;
+    display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; overflow: hidden;
+  }
+  .chip { flex: 0 0 calc(12.5% - 4px); height: 36px; border-radius: 8px; display:flex; align-items:center; justify-content:center; position: relative; cursor: pointer; }
+  .chip small { font-size: 9px; opacity: .85; position:absolute; top: 1px; left: 3px; }
+  .chip svg { width: 22px; height: 22px; margin-top: 4px; }
+  .chip.U { background: #2f9e44; } .chip.D { background: #c2255c; } .chip.L { background: #1c7ed6; } .chip.R { background: #f08c00; }
+  .chip.active { outline: 4px solid #fff; box-shadow: 0 0 0 7px #000; transform: scale(1.12); z-index: 2; }
+  .chip.done { opacity: .6; }
+  #empty { opacity: .9; font-size: 14px; padding: 4px; }
+  #buttons { display: flex; gap: 6px; }
+  .btn { border: none; border-radius: 12px; padding: 9px 4px; font-size: 15px; font-family: inherit; font-weight: bold; cursor: pointer; color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,.35); }
+  .btn:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,.35); }
+  #run { flex: 2; background: #e03131; font-size: 17px; }
+  #undo { flex: 1; background: #5f3dc4; }
+  #clear { flex: 1; background: #495057; }
+  .btn:disabled, .cmd:disabled { opacity: .45; cursor: not-allowed; }
+  #next { display: none; background: #2f9e44; font-size: 18px; padding: 12px; }
+  #levels { flex: none; display: flex; gap: 6px; justify-content: center; }
+  .lv { width: 30px; height: 30px; border-radius: 50%; border: none; font-size: 15px; font-family: inherit; font-weight: bold; background: #3b4a8f; color: #fff; cursor: pointer; padding: 0; }
+  .lv.cur { outline: 3px solid #fff; }
+  .lv.won { background: #f5b301; color: #222; }
+
+  /* mobil na šířku: plocha vlevo, ovládání vpravo */
+  @media (orientation: landscape) and (max-height: 520px) {
+    #game { flex-direction: row; }
+    #side { width: 46%; justify-content: center; }
+    #program { height: 84px; }
+    h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+  <div id="top">
+    <h1>🤖 Robot Bobík</h1>
+    <div id="levelInfo">Úroveň 1</div>
+    <div id="stars"></div>
+    <button id="mute" title="Zvuk" style="border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;background:#3b4a8f;color:#fff;padding:0">🔊</button>
+  </div>
+
+  <div id="game">
+    <div id="boardWrap">
+      <div id="board"></div>
+    </div>
+
+    <div id="side">
+      <div id="msg">Poskládej kroky a pak spusť program!</div>
+      <div id="cmds">
+          <button class="cmd U" data-c="U"><span class="big"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 42 V8 M10 22 L24 8 L38 22"/></svg></span>Nahoru</button>
+          <button class="cmd L" data-c="L"><span class="big"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M42 24 H8 M22 10 L8 24 L22 38"/></svg></span>Doleva</button>
+          <button class="cmd D" data-c="D"><span class="big"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6 V40 M10 26 L24 40 L38 26"/></svg></span>Dolů</button>
+          <button class="cmd R" data-c="R"><span class="big"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 24 H40 M26 10 L40 24 L26 38"/></svg></span>Doprava</button>
+        </div>
+      <div id="program"></div>
+
+      <div id="buttons">
+        <button class="btn" id="undo">⌫ Zpět</button>
+        <button class="btn" id="clear">🗑 Smazat</button>
+        <button class="btn" id="run">▶ Spustit program</button>
+      </div>
+      <button class="btn" id="next">Další úroveň ➡️</button>
+    </div>
+  </div>
+
+  <div id="levels"></div>
+
+<canvas id="confetti"></canvas>
+<div id="banner"></div>
+<script>
+// S = start, G = cíl, # = cesta, . = propast. Šířka 6, výška 5.
+// dir: kam se robot na začátku dívá (0 nahoru, 1 doprava, 2 dolů, 3 doleva)
+const LEVELS = [
+  { dir: 1, map: [
+    "......",
+    "......",
+    "S###G.",
+    "......",
+    "......" ] },
+  { dir: 1, map: [
+    "......",
+    "....G.",
+    "....#.",
+    "S####.",
+    "......" ] },
+  { dir: 0, map: [
+    "......",
+    "###G..",
+    "#.....",
+    "#.....",
+    "S....." ] },
+  { dir: 1, map: [
+    "S###..",
+    "...#..",
+    "...#..",
+    "G###..",
+    "......" ] },
+  { dir: 1, map: [
+    "S#....",
+    ".##...",
+    "..##..",
+    "...G..",
+    "......" ] },
+  { dir: 1, map: [
+    "S####.",
+    ".#..#.",
+    ".#..#.",
+    ".####G",
+    "......" ] },
+  { dir: 0, map: [
+    "G#####",
+    ".....#",
+    ".....#",
+    ".....#",
+    ".....S" ] },
+];
+
+// ---------- Zvuky (vyrobené přímo v prohlížeči, bez souborů) ----------
+let actx = null, muted = false;
+function audio() {
+  if (!actx) { const A = window.AudioContext || window.webkitAudioContext; if (A) actx = new A(); }
+  if (actx && actx.state === "suspended") actx.resume();
+  return actx;
+}
+function tone(freq, dur, { type = "square", vol = 0.15, delay = 0, slide = 0 } = {}) {
+  if (muted) return;
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+}
+// ---------- Hlas robota Bobíka (předgenerované nahrávky ze složky zvuky/) ----------
+const VOICE_FILES = ["ahoj","start1","start2","start3","U","D","L","R","pad1","pad2","pad3","oprava","malo","cil1","cil2","cil3","vse","dalsi","plny","prazdny"];
+const voices = {};
+VOICE_FILES.forEach(n => { const a = new Audio("zvuky/" + n + ".mp3"); a.preload = "auto"; voices[n] = a; });
+let currentVoice = null;
+// voice("cil") vybere náhodně cil1..cil3; vrací Promise, který skončí s koncem nahrávky
+function voice(name, { delay = 0, interrupt = true } = {}) {
+  return new Promise(resolve => {
+    if (muted) return resolve();
+    const opts = VOICE_FILES.filter(n => n === name || (n.startsWith(name) && /^\d$/.test(n.slice(name.length))));
+    if (!opts.length) return resolve();
+    setTimeout(() => {
+      if (muted) return resolve();
+      const a = opts[(Math.random() * opts.length) | 0];
+      if (interrupt && currentVoice) { currentVoice.pause(); }
+      const el = voices[a]; el.currentTime = 0; currentVoice = el;
+      el.onended = () => resolve();
+      el.play().catch(() => resolve());
+      setTimeout(resolve, 6000);
+    }, delay);
+  });
+}
+const DIR_NOTE = { U: 660, D: 440, L: 520, R: 780 };
+const sfx = {
+  click(c) { tone(DIR_NOTE[c], 0.12, { type: "triangle", vol: 0.25 }); },
+  remove() { tone(300, 0.1, { type: "triangle", vol: 0.2, slide: -120 }); },
+  start() { [392, 523].forEach((f, i) => tone(f, 0.14, { delay: i * 0.12 })); },
+  step(c) { tone(DIR_NOTE[c] / 2, 0.07, { type: "square", vol: 0.06 }); voice(c); },
+  fall() { tone(900, 0.9, { type: "sine", vol: 0.25, slide: -800 }); tone(120, 0.25, { type: "sawtooth", vol: 0.2, delay: 0.85 }); return voice("pad", { delay: 500 }); },
+  miss() { tone(220, 0.25, { type: "sawtooth", vol: 0.15 }); tone(180, 0.35, { type: "sawtooth", vol: 0.15, delay: 0.25 }); voice("malo", { delay: 700 }); },
+  win() {
+    // fanfára: trumpetky do-mi-sol-do, pak dlouhý akord
+    const n = [523, 659, 784, 1047];
+    n.forEach((f, i) => tone(f, 0.18, { type: "sawtooth", vol: 0.14, delay: i * 0.15 }));
+    [523, 659, 784, 1047].forEach(f => tone(f, 0.9, { type: "sawtooth", vol: 0.1, delay: 0.7 }));
+    [1319, 1568, 2093].forEach((f, i) => tone(f, 0.15, { type: "triangle", vol: 0.12, delay: 1.0 + i * 0.1 }));
+    voice("cil", { delay: 1300 });
+  },
+  allDone() {
+    [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, { type: "sawtooth", vol: 0.14, delay: i * 0.17 }));
+    voice("vse", { delay: 1600 });
+  },
+};
+
+// ---------- Vizuální fanfáry: konfety, nápis, skákající robot ----------
+let confettiRun = 0;
+function celebrate(big) {
+  const cv = $("confetti"), ctx = cv.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.scale(dpr, dpr);
+  const colors = ["#ff6b6b", "#ffd43b", "#51cf66", "#4dabf7", "#da77f2", "#ff922b"];
+  const parts = [];
+  const bursts = big ? 3 : 2;
+  for (let b = 0; b < bursts; b++) {
+    const cx = innerWidth * (bursts === 2 ? 0.25 + b * 0.5 : 0.2 + b * 0.3);
+    for (let i = 0; i < (big ? 90 : 70); i++) {
+      const a = Math.random() * Math.PI * 2, v = 6 + Math.random() * 9;
+      parts.push({ x: cx, y: innerHeight * 0.45, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 6,
+        w: 6 + Math.random() * 8, h: 4 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .4,
+        c: colors[(Math.random() * colors.length) | 0], delay: b * 12 });
+    }
+  }
+  for (let i = 0; i < 40; i++) // padající konfety shora
+    parts.push({ x: Math.random() * innerWidth, y: -20 - Math.random() * 200, vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3,
+      w: 6 + Math.random() * 8, h: 4 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .3,
+      c: colors[(Math.random() * colors.length) | 0], delay: 20 });
+  const id = ++confettiRun; let f = 0;
+  (function tick() {
+    if (id !== confettiRun) return;
+    ctx.clearRect(0, 0, innerWidth, innerHeight); f++;
+    let alive = false;
+    for (const p of parts) {
+      if (f < p.delay) { alive = true; continue; }
+      p.vy += 0.28; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      if (p.y < innerHeight + 30) alive = true; else continue;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    }
+    if (alive && f < 300) requestAnimationFrame(tick); else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  })();
+  const bn = $("banner");
+  bn.textContent = big ? "🏆 Vyhrál jsi všechno! 🏆" : "🎉 Cíl! 🎉";
+  bn.classList.remove("show"); void bn.offsetWidth; bn.classList.add("show");
+  const g = board.querySelector(".cell.goal"); if (g) g.classList.add("win");
+  robotEl.classList.add("cheer");
+}
+
+const MAX_STEPS = 16;
+const W = 6, H = 5;
+const ICON = {
+  U: '<svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 42 V8 M10 22 L24 8 L38 22"/></svg>',
+  D: '<svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6 V40 M10 26 L24 40 L38 26"/></svg>',
+  L: '<svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M42 24 H8 M22 10 L8 24 L22 38"/></svg>',
+  R: '<svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 24 H40 M26 10 L40 24 L26 38"/></svg>'
+};
+
+let level = 0, program = [], running = false;
+let robot = { x: 0, y: 0, dir: 0 }, angle = 0;
+const won = new Set();
+
+const $ = id => document.getElementById(id);
+const board = $("board");
+const robotEl = document.createElement("div");
+robotEl.id = "robot";
+const markerEl = document.createElement("div");
+markerEl.id = "marker";
+robotEl.innerHTML = '<div id="robotInner"><div id="nose"></div>🤖</div>';
+
+function tile(x, y) { return LEVELS[level].map[y][x]; }
+function find(ch) {
+  const m = LEVELS[level].map;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m[y][x] === ch) return { x, y };
+}
+function say(text, cls = "") { const m = $("msg"); m.textContent = text; m.className = cls; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function loadLevel(n) {
+  level = n; program = []; running = false;
+  board.innerHTML = "";
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = tile(x, y), c = document.createElement("div");
+    c.className = "cell" + (t === "." ? "" : t === "S" ? " start" : t === "G" ? " goal" : " path");
+    if (t === "G") c.textContent = "🏁";
+    board.appendChild(c);
+  }
+  confettiRun++; $("confetti").getContext("2d").clearRect(0, 0, 1e5, 1e5); $("banner").classList.remove("show");
+  board.appendChild(markerEl);
+  board.appendChild(robotEl);
+  resetRobot(true);
+  $("levelInfo").textContent = "Úroveň " + (n + 1) + "/" + LEVELS.length;
+  $("next").style.display = "none";
+  $("buttons").style.display = "flex";
+  say("Poskládej kroky a pak spusť program!");
+  renderProgram(); renderLevels(); renderStars(); setEnabled(true);
+}
+
+function placeRobot() {
+  const cs = board.children[0];
+  const cell = cs.offsetWidth, gap = 3, pad = 8;
+  robotEl.style.left = (pad + robot.x * (cell + gap)) + "px";
+  robotEl.style.top = (pad + robot.y * (cell + gap)) + "px";
+  robotEl.firstChild.style.transform = "rotate(" + angle + "deg)";
+}
+function resetRobot(instant) {
+  const s = find("S");
+  robot = { x: s.x, y: s.y, dir: LEVELS[level].dir };
+  angle = robot.dir * 90;
+  if (instant) robotEl.style.transition = "none";
+  robotEl.classList.remove("fall", "cheer");
+  placeRobot();
+  if (instant) { void robotEl.offsetWidth; robotEl.style.transition = ""; }
+}
+
+const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0], DIRS = { U: 0, R: 1, D: 2, L: 3 };
+function simulate(prog) {
+  const s0 = find("S"); let x = s0.x, y = s0.y;
+  for (let i = 0; i < prog.length; i++) {
+    x += DX[DIRS[prog[i]]]; y += DY[DIRS[prog[i]]];
+    if (x < 0 || x >= W || y < 0 || y >= H || tile(x, y) === ".") return { fell: i };
+  }
+  return { fell: -1, x, y };
+}
+function updateMarker() {
+  const r = simulate(program);
+  if (running || !program.length || r.fell >= 0 || tile(r.x, r.y) === "G") { markerEl.style.display = "none"; return; }
+  const cell = board.children[0].offsetWidth;
+  markerEl.style.left = (8 + r.x * (cell + 3)) + "px";
+  markerEl.style.top = (8 + r.y * (cell + 3)) + "px";
+  markerEl.style.display = "block";
+}
+
+function renderProgram() {
+  const p = $("program"); p.innerHTML = "";
+  if (!program.length) { p.innerHTML = '<div id="empty">Tady se objeví tvůj program. Klikej na šipky dole.</div>'; }
+  program.forEach((c, i) => {
+    const d = document.createElement("div");
+    d.className = "chip " + c; d.id = "chip" + i;
+    d.innerHTML = "<small>" + (i + 1) + "</small>" + ICON[c];
+    d.title = "Klikni pro smazání";
+    d.onclick = () => { if (!running) { sfx.remove(); program.splice(i, 1); renderProgram(); } };
+    p.appendChild(d);
+  });
+  if (!running && program.length && program.length < MAX_STEPS) {
+    const n = document.createElement("div"); n.className = "chip next"; n.textContent = "+"; p.appendChild(n);
+  }
+  updateMarker();
+}
+function setEnabled(on) {
+  document.querySelectorAll(".cmd, #undo, #clear, #run").forEach(b => b.disabled = !on);
+}
+function renderLevels() {
+  const l = $("levels"); l.innerHTML = "";
+  LEVELS.forEach((_, i) => {
+    const b = document.createElement("button");
+    b.className = "lv" + (i === level ? " cur" : "") + (won.has(i) ? " won" : "");
+    b.textContent = i + 1;
+    b.onclick = () => { if (!running) loadLevel(i); };
+    l.appendChild(b);
+  });
+}
+function renderStars() { $("stars").textContent = "⭐".repeat(won.size) + "☆".repeat(LEVELS.length - won.size); }
+
+document.querySelectorAll(".cmd").forEach(b => b.onclick = () => {
+  if (running) return;
+  if (program.length >= MAX_STEPS) { say("Program je plný. Zkus ho zkrátit.", "bad"); voice("plny"); return; }
+  program.push(b.dataset.c); sfx.click(b.dataset.c); renderProgram();
+});
+$("undo").onclick = () => { if (!running) { sfx.remove(); program.pop(); renderProgram(); } };
+$("clear").onclick = () => { if (!running) { sfx.remove(); program = []; renderProgram(); } };
+$("next").onclick = () => { voice("dalsi"); loadLevel(level + 1 < LEVELS.length ? level + 1 : 0); };
+
+$("run").onclick = async () => {
+  if (running) return;
+  if (!program.length) { say("Nejdřív přidej nějaké kroky do programu.", "bad"); voice("prazdny"); return; }
+  running = true; setEnabled(false); sfx.start();
+  resetRobot(true);
+  // robot nejdřív řekne "Jedeme!" a teprve pak začne plnit program
+  await Promise.all([voice("start", { delay: 200 }), sleep(900)]);
+  say("Robot plní program...");
+  const dx = [0, 1, 0, -1], dy = [-1, 0, 1, 0];
+
+  for (let i = 0; i < program.length; i++) {
+    document.querySelectorAll(".chip").forEach((c, j) => {
+      c.classList.toggle("active", j === i); c.classList.toggle("done", j < i);
+    });
+    const c = program[i];
+    const d = { U: 0, R: 1, D: 2, L: 3 }[c];
+    // otočit robota nejkratší cestou ke směru pohybu
+    let diff = ((d - robot.dir) % 4 + 4) % 4;
+    if (diff === 3) diff = -1;
+    angle += diff * 90; robot.dir = d;
+    robot.x += dx[d]; robot.y += dy[d];
+    placeRobot(); sfx.step(c);
+    await sleep(850);
+
+    const inside = robot.x >= 0 && robot.x < W && robot.y >= 0 && robot.y < H;
+    if (!inside || tile(robot.x, robot.y) === ".") {
+      const bad = document.getElementById("chip" + i);
+      if (bad) { bad.classList.remove("active"); bad.classList.add("bad"); }
+      say("Ouha! Na kroku " + (i + 1) + " robot spadl. Špatný krok je červený.", "bad");
+      robotEl.classList.add("fall");
+      await Promise.all([sfx.fall(), sleep(1800)]);
+      // automatická oprava: smažeme špatný krok i všechno za ním
+      program.splice(i);
+      fail(); voice("oprava");
+      say(i === 0
+        ? "Smazal jsem špatný krok. Zkus jiný směr."
+        : "Smazal jsem špatný krok. Dobré kroky zůstaly. Žlutý rámeček ukazuje, kde robot skončí. Pokračuj odtud!", "good");
+      return;
+    }
+  }
+  document.querySelectorAll(".chip").forEach(c => { c.classList.remove("active"); c.classList.add("done"); });
+
+  if (tile(robot.x, robot.y) === "G") {
+    won.add(level); renderStars(); renderLevels();
+    say("🎉 Hurá, robot došel do cíle! Napsal jsi program!", "good");
+    const all = won.size === LEVELS.length;
+    if (all) sfx.allDone(); else sfx.win();
+    celebrate(all);
+    $("buttons").style.display = "none";
+    $("next").style.display = "block";
+    $("next").textContent = level + 1 < LEVELS.length ? "Další úroveň ➡️" : "Hrát znovu od začátku 🔄";
+    running = false;
+  } else {
+    sfx.miss();
+    await sleep(1200);
+    fail();
+    say("Robot došel na konec programu, ale ne do cíle. Žlutý rámeček ukazuje, kde skončil. Přidej další kroky!", "bad");
+  }
+};
+
+function fail() {
+  resetRobot(true);
+  running = false; renderProgram();
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active", "done"));
+  running = false; setEnabled(true);
+}
+
+$("mute").onclick = () => { muted = !muted; if (muted && currentVoice) currentVoice.pause(); $("mute").textContent = muted ? "🔇" : "🔊"; if (!muted) sfx.click("U"); };
+// uvítání robota při prvním dotyku (prohlížeče povolí zvuk až po kliknutí)
+let greeted = false;
+window.addEventListener("pointerdown", () => {
+  if (greeted) return; greeted = true;
+  // Safari a mobily povolí přehrát každou nahrávku až po "odemknutí" dotykem, tak je odemkneme všechny naráz
+  Object.values(voices).forEach(el => {
+    el.muted = true;
+    const pr = el.play();
+    const done = () => { el.pause(); el.currentTime = 0; el.muted = false; };
+    if (pr && pr.then) pr.then(done, () => { el.muted = false; }); else done();
+  });
+  if (level === 0 && !program.length) voice("ahoj", { delay: 600 });
+}, { once: false });
+window.addEventListener("resize", () => { placeRobot(); updateMarker(); });
+loadLevel(0);
+</script>
+</body>
+</html>
