@@ -204,7 +204,8 @@ function vyhodnot() {
   }
   vykresliTahy(pokr, sirkaStopy() * 1.9);   // shovívavé pokrytí: čára nemusí sedět přesně
   vykresliTahy(uziv, sirkaStopy());
-  const m = data(mask), tl = data(tol), p = data(pokr), u = data(uziv);
+  const stred = malePlatno(); vykresliTahy(stred, sirkaStopy() * 1.4);   // pro drobné části: čára musí opravdu ležet na nich
+  const m = data(mask), tl = data(tol), p = data(pokr), u = data(uziv), sd = data(stred);
   let celkem = 0, pokryto = 0, uzivPix = 0, mimo = 0;
   const chybejici = malePlatno(), cx = chybejici.getContext("2d"), ci = cx.createImageData(chybejici.width, chybejici.height);
   for (let i = 3; i < m.length; i += 4) {
@@ -218,12 +219,18 @@ function vyhodnot() {
   // jinak by hra uznala třeba "s" ještě před dokreslením háčku nad "š".
   const casti = souvisleCasti(m, mask.width, mask.height);
   let nejhorsi = 1, chybiCast = false;
+  const nejvetsi = casti.reduce((a, c) => Math.max(a, c.length), 0);
   for (const c of casti) {
+    // hlavní tělo písmene se hodnotí shovívavě, ale každá další část (háček, čárka, kroužek, tečka)
+    // přísněji a užší čarou: tlustá čára vedená těsně pod nimi by je jinak "pokryla"
+    // a hra by uznala písmeno bez háčku
+    const vedlejsi = c.length < nejvetsi;
+    const pole = vedlejsi ? sd : p;
     let ok = 0;
-    for (const i of c) if (p[i * 4 + 3] > 40) ok++;
+    for (const i of c) if (pole[i * 4 + 3] > 40) ok++;
     const pod = ok / c.length;
     nejhorsi = Math.min(nejhorsi, pod);
-    if (pod < PRAH_CASTI) chybiCast = true;
+    if (pod < (vedlejsi ? 0.55 : PRAH_CASTI)) chybiCast = true;
   }
   nastavPostup(chybiCast ? Math.min(pokryti, PRAH_POKRYTI - 0.05) : pokryti);
   if (pokryti >= PRAH_POKRYTI && !chybiCast && mimoPodil <= MAX_MIMO) return uspech();
@@ -245,7 +252,7 @@ function souvisleCasti(m, w, h) {
         if (!videno[j] && m[j * 4 + 3] > 100) { videno[j] = 1; zasobnik.push(j); }
       }
     }
-    if (cast.length >= 6) casti.push(cast);
+    if (cast.length >= 3) casti.push(cast);
   }
   return casti;
 }
