@@ -11,10 +11,10 @@ KEY = os.environ.get("ELEVENLABS_APIKEY") or os.environ.get("ELEVENLABS_API_KEY"
 if not KEY:
     sys.exit("Chybí ELEVENLABS_APIKEY (zkus: source ~/.zshrc)")
 
-# Eleven v4: nejnovější a nejexpresivnější model, umí česky.
-MODEL = "eleven_v4"
+# Eleven v3 s rodilým českým hlasem.
+MODEL = "eleven_v3"
 # Charlie: hlasitý, energický, veselý hlas. Hodí se pro zábavného robota.
-VOICE = "IKne3meq5aSn9XLyUdCD"
+VOICE = "pt8Kvp57SW3o4WuGqWZG"  # Kuba: mladý nadšený rodilý český hlas
 
 HLASKY = {
     "ahoj":      "Ahoj kamarádi! Já jsem robot Bobík. Pomozte mi dojít do cíle!",

@@ -39,7 +39,7 @@ const Hry = (() => {
   // mezipaměti prohlížeče (Cache API, příště je to hned) a změní se na lokální adresy, takže se pak
   // přehrávají bez čekání. Na konci je velké tlačítko "Hrát", které zároveň odemkne zvuk na mobilu.
   // Změníš-li nahrávky, zvyš VERZE_HLASU, ať si je uživatelé stáhnou znovu.
-  const VERZE_HLASU = "2026-10-10a";
+  const VERZE_HLASU = "2026-10-10b";
   const player = new Audio();
 
   function obrazovkaNacitani(logo) {

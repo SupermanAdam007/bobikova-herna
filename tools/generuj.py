@@ -15,9 +15,9 @@ if not KEY:
     sys.exit("Chybí ELEVENLABS_APIKEY (zkus: source ~/.zshrc)")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Eleven v3: v testech nejpřesnější česká výslovnost (v4 špatně vyslovovala "najdi" a "obtáhni").
+# Eleven v3 + rodilý český hlas z knihovny (anglický hlas Charlie vyslovoval české hlásky špatně).
 MODEL = "eleven_v3"
-HLAS = "IKne3meq5aSn9XLyUdCD"  # Charlie: energický a veselý
+HLAS = "vdZa6jplen8RQdIWzOGX"  # Michaela: česká učitelka, klidný a srozumitelný rodilý hlas
 
 def nacti(jmeno):
     t = open(os.path.join(ROOT, "spolecne", "pismena.js"), encoding="utf-8").read()
@@ -71,18 +71,26 @@ def generuj(k):
     hra, nazev, emoce, text = k
     slozka = os.path.join(ROOT, hra, "zvuky"); os.makedirs(slozka, exist_ok=True)
     cil = os.path.join(slozka, nazev + ".mp3")
-    if os.path.exists(cil) and "--znovu" not in sys.argv:
+    # --od=EPOCH: přegeneruje jen soubory starší než daný čas (pokračování po přerušeném běhu)
+    od = next((float(a[5:]) for a in sys.argv if a.startswith("--od=")), None)
+    if os.path.exists(cil) and "--znovu" not in sys.argv and (od is None or os.path.getmtime(cil) >= od):
         return f"přeskakuji {hra}/{nazev}"
     body = json.dumps({"text": (emoce + " " + text).strip(), "model_id": MODEL, "language_code": "cs"}).encode()
     req = urllib.request.Request(
         f"https://api.elevenlabs.io/v1/text-to-speech/{HLAS}?output_format=mp3_44100_128",
         data=body, headers={"xi-api-key": KEY, "Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req) as r, open(cil, "wb") as f:
-            f.write(r.read())
-        return f"hotovo {hra}/{nazev}"
-    except urllib.error.HTTPError as e:
-        return f"CHYBA {hra}/{nazev} {e.code} {e.read().decode()[:200]}"
+    for pokus in range(4):   # při výpadku sítě to zkusí znovu
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                data = r.read()
+            open(cil, "wb").write(data)
+            return f"hotovo {hra}/{nazev}"
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and pokus < 3: time.sleep(5); continue
+            return f"CHYBA {hra}/{nazev} {e.code} {e.read().decode()[:200]}"
+        except (urllib.error.URLError, TimeoutError, OSError):
+            time.sleep(5 * (pokus + 1))
+    return f"CHYBA {hra}/{nazev} síť nedostupná"
 
 def over(k):
     hra, nazev, _, text = k
