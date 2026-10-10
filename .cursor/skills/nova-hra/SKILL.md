@@ -45,9 +45,9 @@ Web je čistě statický (HTML, JS, CSS, bez build kroku), hostovaný na GitHub 
    - Skript z každé změněné stránky: vytáhni obsah `<script>` a spusť `node --check`.
    - `python3 -c "import ast; ast.parse(open('tools/generuj.py').read())"`
    - Lokální server (`python3 -m http.server PORT`), otevři hru v prohlížeči (`cursor-ide-browser`), klikni na "Hrát" (loading overlay má `z-index:1000`), udělej screenshot v mobilní šířce kolem 390 px a ověř, že se vše vejde.
-   - **Hru vždy opravdu zahraj.** V prohlížeči projdi celé kolo od začátku do konce přes DOM (klikání na tlačítka, případně `Runtime.evaluate`), ne jen první obrazovku:
+   - **Hru vždy opravdu zahraj.** V prohlížeči zahraj několik kol přes DOM (klikání na tlačítka, případně `Runtime.evaluate`), ne jen první obrazovku:
      - zkus správnou i špatnou odpověď a ověř, že špatná se ztlumí a správná posune hru dál,
-     - dohraj až na závěrečnou obrazovku (fanfára, oslava, "Hrát znovu") a spusť hru znovu,
+     - zahraj několik kol, ne celou hru; na závěrečnou obrazovku dojdi jen u nové hry nebo když ses jí dotkl (u drobných změn stačí kola, kterých se změna týká),
      - sleduj chyby v konzoli (`Log.enable`, `Runtime.exceptionThrown`) a neúspěšné načtení souborů (404 na klipy nebo obrázky),
      - ověř, že každý klip z `jmena` existuje a hra nezůstane viset na loading obrazovce,
      - zkontroluj vzhled ve dvou velikostech: mobil kolem 390x780 a široká obrazovka kolem 1400x800, nic nesmí scrollovat ani se useknout.
