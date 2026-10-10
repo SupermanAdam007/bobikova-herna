@@ -72,7 +72,8 @@ SLOVA.forEach(s => jmena.push("slovo_" + s.id));
 Hry.nactiHlas("zvuky/", jmena);
 
 const PRAH_POKRYTI = 0.75;   // kolik z písmene musí být obtažené
-const MAX_MIMO = 0.40;       // kolik čmáranice smí být mimo písmeno
+const MAX_MIMO = 0.40;
+const PRAH_CASTI = 0.6;      // každá samostatná část (háček, čárka, tečka) musí být obtažená aspoň takto       // kolik čmáranice smí být mimo písmeno
 
 let rezim = "male", polozky = [], index = 0, tahy = [], hotovo = Hry.nacti("psani_hotovo", {}), zamceno = false, kresli = null;
 const pod = $("podklad"), kre = $("kresba"), chy = $("chybi");
@@ -95,7 +96,7 @@ function sestavPolozky() {
   });
 }
 function vyber(i, mluv) {
-  index = i; zamceno = false; tahy = [];
+  index = i; zamceno = false; tahy = []; clearTimeout(napovedaCas);
   document.querySelectorAll(".polozka").forEach((b, j) => b.classList.toggle("vybrana", j === i));
   const el = $("p" + i); if (el) el.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   Hry.uklidOslavu(); cc.clearRect(0, 0, W, H);
@@ -163,7 +164,7 @@ function nastavStopu(c, sirka, barva) { c.lineCap = "round"; c.lineJoin = "round
 kre.addEventListener("pointerdown", e => {
   if (zamceno) return;
   e.preventDefault(); try { kre.setPointerCapture(e.pointerId); } catch (x) {}
-  cc.clearRect(0, 0, W, H);
+  cc.clearRect(0, 0, W, H); clearTimeout(napovedaCas);
   kresli = [bod(e)]; tahy.push(kresli);
   nastavStopu(ck, sirkaStopy(), "#1971c2");
   ck.beginPath(); ck.arc(kresli[0].x * W, kresli[0].y * H, sirkaStopy() / 2, 0, 7); ck.fill();
@@ -209,10 +210,42 @@ function vyhodnot() {
     if (u[i] > 40) { uzivPix++; if (tl[i] < 40) mimo++; }
   }
   cx.putImageData(ci, 0, 0);
-  const pokryti = celkem ? pokryto / celkem : 0, mimoPodil = uzivPix ? mimo / uzivPix : 0;
-  nastavPostup(pokryti);
-  if (pokryti >= PRAH_POKRYTI && mimoPodil <= MAX_MIMO) return uspech();
-  neuspech(pokryti, mimoPodil, chybejici);
+  let pokryti = celkem ? pokryto / celkem : 0;
+  const mimoPodil = uzivPix ? mimo / uzivPix : 0;
+  // Samostatné části písmene (háček, čárka, tečka nad i) se musí obtáhnout každá zvlášť,
+  // jinak by hra uznala třeba "s" ještě před dokreslením háčku nad "š".
+  const casti = souvisleCasti(m, mask.width, mask.height);
+  let nejhorsi = 1, chybiCast = false;
+  for (const c of casti) {
+    let ok = 0;
+    for (const i of c) if (p[i * 4 + 3] > 40) ok++;
+    const pod = ok / c.length;
+    nejhorsi = Math.min(nejhorsi, pod);
+    if (pod < PRAH_CASTI) chybiCast = true;
+  }
+  nastavPostup(chybiCast ? Math.min(pokryti, PRAH_POKRYTI - 0.05) : pokryti);
+  if (pokryti >= PRAH_POKRYTI && !chybiCast && mimoPodil <= MAX_MIMO) return uspech();
+  neuspech(pokryti, mimoPodil, chybejici, chybiCast && pokryti >= PRAH_POKRYTI);
+}
+// rozdělí masku písmene na samostatné souvislé části (bez drobných šumů)
+function souvisleCasti(m, w, h) {
+  const videno = new Uint8Array(w * h), casti = [];
+  for (let start = 0; start < w * h; start++) {
+    if (videno[start] || m[start * 4 + 3] <= 100) continue;
+    const zasobnik = [start], cast = []; videno[start] = 1;
+    while (zasobnik.length) {
+      const i = zasobnik.pop(); cast.push(i);
+      const x = i % w, y = (i / w) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (!videno[j] && m[j * 4 + 3] > 100) { videno[j] = 1; zasobnik.push(j); }
+      }
+    }
+    if (cast.length >= 6) casti.push(cast);
+  }
+  return casti;
 }
 function nastavPostup(p) { $("postupPlny").style.width = Math.round(Math.min(1, p) * 100) + "%"; }
 
@@ -232,7 +265,21 @@ async function uspech() {
   await Hry.sleep(500);
   if (zamceno && index === polozky.indexOf(p)) dalsiPolozka();
 }
-function neuspech(pokryti, mimoPodil, chybejici) {
+let napovedaCas = null;
+function neuspech(pokryti, mimoPodil, chybejici, chybiJenCast) {
+  clearTimeout(napovedaCas);
+  if (chybiJenCast && mimoPodil <= MAX_MIMO) {
+    // hlavní tvar je hotový, dítě asi jen dokresluje háček nebo čárku: nespěchat a nehodnotit hned
+    hlaska("Ještě dokresli háček, čárku nebo tečku!");
+    napovedaCas = setTimeout(() => {
+      if (zamceno || kresli) return;
+      Hry.zvuky.spatne(); hlaska("Chybí ještě háček, čárka nebo tečka. Podívej se na žluté místo!", "spatne");
+      cc.clearRect(0, 0, W, H); cc.globalAlpha = .9; cc.drawImage(chybejici, 0, 0, W, H); cc.globalAlpha = 1;
+      setTimeout(() => cc.clearRect(0, 0, W, H), 2500);
+      Hry.rekni("zkus");
+    }, 3500);
+    return;
+  }
   Hry.zvuky.spatne();
   if (mimoPodil > MAX_MIMO) {
     hlaska("Moc čmárání mimo čáru. Smaž to a obtáhni to pomalu.", "spatne");
