@@ -148,10 +148,12 @@ function nakresliPodklad(hotovoZelene) {
   const t = polozky[index].text;
   // předloha: světlé písmeno s tmavým obrysem, které se obtahuje
   font(cp); cp.lineJoin = "round"; cp.lineCap = "round";
+  // Nejdřív obrys (dvojnásobná tloušťka), potom výplň navrch: tím zmizí vnitřní čáry tam, kde se tahy písmene
+  // v písmu překrývají (b, p a další), a zůstane jen čistý vnější obrys.
+  cp.lineWidth = 6; cp.strokeStyle = hotovoZelene ? "#2b8a3e" : "#4c6ef5";
+  cp.strokeText(t, xText, yZakl);
   cp.fillStyle = hotovoZelene ? "#b2f2bb" : "#e7ecff";
   cp.fillText(t, xText, yZakl);
-  cp.lineWidth = 3; cp.strokeStyle = hotovoZelene ? "#2b8a3e" : "#4c6ef5";
-  cp.strokeText(t, xText, yZakl);
 }
 function sirkaStopy() { return Math.max(12, S * 0.085); }
 
