@@ -144,8 +144,14 @@ function rozlozeni() {
   const znaku = Math.max(1, t.length);
   S = rezim === "slova" ? Math.min(H * 0.4, W / (znaku * 0.62)) : Math.min(H * 0.5, W * 0.75);
   font(cp);
-  const sirka = maVlastni(t) ? VLASTNI[t].sirka * vyskaX() : cp.measureText(t).width;
-  xText = (W - sirka) / 2;
+  if (maVlastni(t)) { xText = (W - VLASTNI[t].sirka * vyskaX()) / 2; }
+  else {
+    // Skutečná šířka tahů písma (včetně přesahů): když se slovo nevejde, zmenší se, ať je celé vidět.
+    let m = cp.measureText(t), tah = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+    const maxSirka = W * 0.92;
+    if (tah > maxSirka) { S *= maxSirka / tah; font(cp); m = cp.measureText(t); tah = m.actualBoundingBoxLeft + m.actualBoundingBoxRight; }
+    xText = (W - tah) / 2 + m.actualBoundingBoxLeft;
+  }
   yZakl = H * (rezim === "slova" ? 0.6 : 0.64);
 }
 // vykreslí text do daného kontextu: tloustka = dilatace okraje (pro tolerantní masku)
