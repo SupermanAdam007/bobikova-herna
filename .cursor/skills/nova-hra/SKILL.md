@@ -15,8 +15,7 @@ Web je čistě statický (HTML, JS, CSS, bez build kroku), hostovaný na GitHub 
 - Nic se neodesílá na internet, neptá se na jména, žádné externí knihovny, fonty ani CDN.
 - Odkazy vždy s `index.html` (kvůli otevírání přes `file://`).
 - Texty česky, bez em-dashů a bez dvojitých pomlček.
-- Commit jedna věta česky. Nikdy nepushuj bez výslovného "push" od uživatele.
-## Postup
+- Commit jedna věta česky.## Postup
 
 1. **Složka a stránka.** Vytvoř `nazev/index.html` podle `abeceda/index.html` nebo `rady/index.html` (nejjednodušší vzor). Povinné části:
    - `<link rel="stylesheet" href="../spolecne/spolecne.css">`, favicon `../obrazky/bobik-ikona.png`
@@ -47,8 +46,7 @@ Web je čistě statický (HTML, JS, CSS, bez build kroku), hostovaný na GitHub 
    - `python3 -c "import ast; ast.parse(open('tools/generuj.py').read())"`
    - Lokální server (`python3 -m http.server PORT`), otevři hru v prohlížeči (`cursor-ide-browser`), klikni na "Hrát" (loading overlay má `z-index:1000`), udělej screenshot v mobilní šířce kolem 390 px a ověř, že se vše vejde.
    - Na konci uklidit své servery a profily Chrome, nepoužívej `pkill` na cizí procesy.
-8. **Commit a push.** `git add -A && git commit -m "Jedna věta česky."` Pushuje se jen na výslovné "push" od uživatele.
-
+8. **Commit.** `git add -A && git commit -m "Jedna věta česky."`
 ## Tipy
 
 - Chybové hlášky dětem nepiš textem, mluví hlas (děti nečtou plynule).
