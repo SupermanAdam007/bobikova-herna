@@ -74,9 +74,6 @@
   #robot.fall { transform: scale(0.1) rotate(540deg); opacity: 0; transition: transform .8s ease-in, opacity .8s ease-in; }
 
   #side { flex: none; display: flex; flex-direction: column; gap: 6px; }
-  #msg { height: 46px; font-size: 15px; font-weight: bold; line-height: 1.15; background: #3b4a8f; border-radius: 12px; padding: 4px 10px; display:flex; align-items:center; overflow: hidden; }
-  #msg.good { background: #2b8a3e; }
-  #msg.bad { background: #b02525; }
   #cmds { display: flex; gap: 6px; }
   .cmd {
     flex: 1; font-size: 13px; border: none; border-radius: 12px; padding: 5px 2px; cursor: pointer; color: #fff;
@@ -136,7 +133,6 @@
     </div>
 
     <div id="side">
-      <div id="msg">Poskládej kroky a pak spusť program!</div>
       <div id="cmds">
           <button class="cmd U" data-c="U"><span class="big"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 42 V8 M10 22 L24 8 L38 22"/></svg></span>Nahoru</button>
           <button class="cmd L" data-c="L"><span class="big"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M42 24 H8 M22 10 L8 24 L22 38"/></svg></span>Doleva</button>
@@ -321,7 +317,7 @@ function find(ch) {
   const m = LEVELS[level].map;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m[y][x] === ch) return { x, y };
 }
-function say(text, cls = "") { const m = $("msg"); m.textContent = text; m.className = cls; }
+function say() {} // popisný řádek byl odstraněn, o všem informuje hlas
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let autoDalsi = null;
