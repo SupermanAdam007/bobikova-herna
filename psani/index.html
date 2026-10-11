@@ -117,14 +117,20 @@ function velikost() {
   rozlozeni();
 }
 function font(c) { c.font = '400 ' + S + 'px "Playwrite CZ", cursive'; c.textBaseline = "alphabetic"; }
-// Vlastní tvary malého psacího b a p podle školní tabule: v písmu Playwrite CZ jim chybí náběh zleva dole (p)
-// a mají jiné bříško (b). Souřadnice jsou v násobcích výšky malého písmene (x doprava, y nahoru od účaří),
-// kreslí se jako tlustá čára po osové dráze.
+// Vlastní tvary malých psacích písmen b, p, z a ž podle školní tabule (abeceda.png): písmo Playwrite CZ má u nich
+// jiný tvar (b má velké bříško, p chybí náběh zleva dole, z a ž jsou tiskací). Souřadnice jsou v násobcích výšky
+// malého písmene (x doprava, y nahoru od účaří), kreslí se jako tlustá čára po osové dráze.
+const Z_TVAR = [["M", 0, 0], ["L", 0.97, 1.0], ["C", 1.05, 1.0, 1.0, 0.95, 0.92, 0.82], ["L", 0.5, 0.15],
+  ["C", 0.4, 0.0, 0.3, 0.12, 0.42, 0.1], ["C", 0.5, 0.0, 0.5, -0.05, 0.6, -0.05], ["C", 0.85, -0.05, 1.05, 0.05, 1.2, 0.25],
+  ["C", 1.4, 0.5, 1.6, 0.8, 1.85, 1.0]];
 const VLASTNI = {
-  b: { sirka: 2.0, d: [["M", 0, 0], ["C", 0.25, 0.25, 0.65, 1.2, 0.9, 1.8], ["C", 1.0, 2.0, 1.2, 1.98, 1.15, 1.7],
-        ["C", 1.0, 1.1, 0.8, 0.55, 0.74, 0.18], ["C", 0.72, -0.1, 1.1, -0.1, 1.3, 0.12], ["C", 1.45, 0.3, 1.6, 0.65, 2.0, 0.92]] },
-  p: { sirka: 2.3, d: [["M", 0, 0], ["L", 0.85, 1.12], ["L", 0.3, -1.15], ["L", 0.78, 0.9],
-        ["C", 1.0, 1.2, 1.55, 1.15, 1.55, 0.45], ["C", 1.55, 0.0, 1.62, -0.05, 1.78, 0.0], ["C", 1.95, 0.08, 2.05, 0.4, 2.3, 0.8]] },
+  b: { sirka: 1.65, d: [["M", 0, 0], ["C", 0.3, 0.35, 0.8, 1.3, 1.15, 2.1], ["C", 1.28, 2.22, 1.42, 2.1, 1.35, 1.85],
+        ["C", 1.2, 1.35, 1.0, 0.75, 0.86, 0.3], ["C", 0.84, 0.05, 0.9, -0.08, 1.0, -0.05], ["C", 1.15, -0.02, 1.2, 0.55, 1.22, 0.98],
+        ["C", 1.38, 0.97, 1.48, 0.98, 1.62, 1.04]] },
+  p: { sirka: 1.9, d: [["M", 0, 0], ["L", 0.93, 1.0], ["L", 0.36, -0.9], ["L", 0.95, 1.0],
+        ["C", 1.0, 0.6, 0.95, 0.2, 1.0, 0.0], ["C", 1.05, -0.08, 1.22, -0.02, 1.35, 0.1], ["C", 1.55, 0.3, 1.7, 0.6, 1.86, 0.88]] },
+  z: { sirka: 1.85, d: Z_TVAR },
+  "ž": { sirka: 1.85, d: [...Z_TVAR, ["M", 1.15, 1.62], ["L", 1.3, 1.45], ["L", 1.55, 1.68]] },
 };
 const maVlastni = t => rezim === "male" && VLASTNI[t];
 function vyskaX() { font(cp); return cp.measureText("x").actualBoundingBoxAscent; }
