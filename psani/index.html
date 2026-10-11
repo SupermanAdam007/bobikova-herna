@@ -182,7 +182,7 @@ function nakresliPodklad(hotovoZelene) {
   if (hotovoZelene) cp.drawImage(barevne(t, XH * 0.06, "rgba(81,207,102,.55)"), 0, 0, W, H);
   // předloha: originální výřez, značky nad písmenem jsou dokreslené stejnou tmavou čarou
   obrazek(cp, t, PISMO[t].f, 0);
-  cp.fillStyle = cp.strokeStyle = "#141414"; znacky(cp, t, Math.max(3, XH * 0.03));
+  if (!PISMO[t].sk) { cp.fillStyle = cp.strokeStyle = "#141414"; znacky(cp, t, Math.max(3, XH * 0.03)); }   // sk: značka je už na originálu (tečka u i, j)
 }
 function sirkaStopy() { return Math.max(12, S * 0.085); }
 
