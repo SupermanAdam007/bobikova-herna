@@ -50,7 +50,7 @@ const $ = id => document.getElementById(id);
 const KOL = 10; // počet úseků dálnice v jedné hře
 
 const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "bum1", "bum2", "start1", "start2", "start3", "konec"];
-Hry.nactiHlas("zvuky/", jmena).then(() => { Hry.rekni("ahoj", { delay: 200 }); novaHra(); });
+Hry.nactiHlas("zvuky/", jmena, { hudba: false }).then(() => { Hry.rekni("ahoj", { delay: 200 }); novaHra(); });
 Hry.nastavTlacitkoZvuku($("zvuk"));
 
 const cv = $("platno"), ctx = cv.getContext("2d");

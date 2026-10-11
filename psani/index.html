@@ -66,7 +66,7 @@ Hry.nastavTlacitkoZvuku($("zvuk"));
 
 const jmena = ["ahoj", "skvele1", "skvele2", "skvele3", "zkus1", "zkus2", "konec"];
 PISMENA.forEach(p => jmena.push("obtahni_" + p.id));
-Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
+Hry.nactiHlas("zvuky/", jmena, { hudba: 2 }).then(() => Hry.rekni("ahoj", { delay: 200 }));
 
 const PRAH_POKRYTI = 0.85;   // kolik z písmene musí být obtažené
 const MAX_MIMO = 0.35;       // kolik čmáranice smí být mimo písmeno

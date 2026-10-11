@@ -90,33 +90,6 @@ function nalada(emoji, ms = 2200, trida = "") {
 }
 function hlaska(t, cls = "") { const h = $("hlaska"); h.textContent = t; h.className = cls; }
 
-// ---------- klidná hudba na pozadí (syntetizovaná v prohlížeči, bez souborů) ----------
-const AKORDY = [            // Am, F, C, G: každý akord má basu a tóny pro melodii (Hz)
-  { bas: [110, 164.8], mel: [220, 261.6, 329.6, 440, 523.3] },
-  { bas: [87.3, 130.8], mel: [174.6, 220, 261.6, 349.2, 440] },
-  { bas: [130.8, 196], mel: [261.6, 329.6, 392, 523.3, 659.3] },
-  { bas: [98, 146.8], mel: [196, 246.9, 293.7, 392, 493.9] },
-];
-let hudbaBezi = false;
-function hudba() {
-  if (hudbaBezi) return; hudbaBezi = true;
-  let akord = 0, takt = 0, posledni = -1;
-  const krok = () => {
-    if (!Hry.ztlumeno) {
-      const a = AKORDY[akord];
-      if (takt === 0) a.bas.forEach(f => Hry.tone(f, 7, { type: "triangle", vol: .05 }));
-      if (Math.random() < .75) {
-        let i; do { i = (Math.random() * a.mel.length) | 0; } while (i === posledni);
-        posledni = i;
-        Hry.tone(a.mel[i], 3.2, { type: "sine", vol: .06 });
-        if (Math.random() < .25) Hry.tone(a.mel[i] * 2, 2.2, { type: "sine", vol: .02, delay: .02 });
-      }
-    }
-    if (++takt >= 6) { takt = 0; akord = (akord + 1) % AKORDY.length; }
-  };
-  krok(); setInterval(krok, 1300);
-}
-
 // ---------- akce ----------
 function pridej() {
   Hry.zvuky.klik();
@@ -318,7 +291,7 @@ function smycka(t) {
   aktualizuj(dt); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); kresli();
   requestAnimationFrame(smycka);
 }
-function zacatek() { hudba(); if (bezi) return; bezi = true; rozmer(); requestAnimationFrame(smycka); }
+function zacatek() { if (bezi) return; bezi = true; rozmer(); requestAnimationFrame(smycka); }
 
 $("pridej").onclick = pridej;
 addEventListener("keydown", e => { if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); if (!e.repeat) pridej(); } });

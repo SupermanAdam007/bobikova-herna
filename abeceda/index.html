@@ -90,7 +90,7 @@ const KOL = 10; // počet otázek v jednom kole
 // nahrávky: karta_*, najdi_*, slovo_* + zpětná vazba
 const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "zkus1", "zkus2", "otazka", "konec"];
 PISMENA.forEach(p => { jmena.push("karta_" + p.id, "najdi_" + p.id); if (p.m3) jmena.push("slovo_" + p.id); });
-Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
+Hry.nactiHlas("zvuky/", jmena, { hudba: 1 }).then(() => Hry.rekni("ahoj", { delay: 200 }));
 Hry.nastavTlacitkoZvuku($("zvuk"));
 
 let rezim = "abeceda", vybrane = null, kolo = 0, body = 0, spravnaOdpoved = null, zamceno = false, chyba = false;

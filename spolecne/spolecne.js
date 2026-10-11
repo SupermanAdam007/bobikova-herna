@@ -34,6 +34,49 @@ const Hry = (() => {
     },
   };
 
+  // ---------- Klidná hudba na pozadí ----------
+  // Syntetizovaná v prohlížeči (jemné doznívající tóny nad pomalou basou), vypíná se tlačítkem zvuku.
+  const HUDBA = [
+    [ // 0: Am, F, C, G
+      { bas: [110, 164.8], mel: [220, 261.6, 329.6, 440, 523.3] },
+      { bas: [87.3, 130.8], mel: [174.6, 220, 261.6, 349.2, 440] },
+      { bas: [130.8, 196], mel: [261.6, 329.6, 392, 523.3, 659.3] },
+      { bas: [98, 146.8], mel: [196, 246.9, 293.7, 392, 493.9] },
+    ],
+    [ // 1: C, G, Am, F (světlejší)
+      { bas: [130.8, 196], mel: [261.6, 329.6, 392, 523.3, 659.3] },
+      { bas: [98, 146.8], mel: [196, 246.9, 293.7, 392, 493.9] },
+      { bas: [110, 164.8], mel: [220, 261.6, 329.6, 440, 523.3] },
+      { bas: [87.3, 130.8], mel: [174.6, 220, 261.6, 349.2, 440] },
+    ],
+    [ // 2: D, A, Bm, G (zasněná)
+      { bas: [73.4, 110], mel: [146.8, 185, 220, 293.7, 370] },
+      { bas: [110, 164.8], mel: [220, 277.2, 329.6, 440, 554.4] },
+      { bas: [123.5, 185], mel: [246.9, 293.7, 370, 493.9, 587.3] },
+      { bas: [98, 146.8], mel: [196, 246.9, 293.7, 392, 493.9] },
+    ],
+  ];
+  let hudbaBezi = false;
+  function hudba(varianta = 0) {
+    if (hudbaBezi) return; hudbaBezi = true;
+    const akordy = HUDBA[varianta % HUDBA.length];
+    let akord = 0, takt = 0, posledni = -1;
+    const krok = () => {
+      if (!muted) {
+        const a = akordy[akord];
+        if (takt === 0) a.bas.forEach(f => tone(f, 7, { type: "triangle", vol: .05 }));
+        if (Math.random() < .75) {
+          let i; do { i = (Math.random() * a.mel.length) | 0; } while (i === posledni);
+          posledni = i;
+          tone(a.mel[i], 3.2, { type: "sine", vol: .06 });
+          if (Math.random() < .25) tone(a.mel[i] * 2, 2.2, { type: "sine", vol: .02, delay: .02 });
+        }
+      }
+      if (++takt >= 6) { takt = 0; akord = (akord + 1) % akordy.length; }
+    };
+    krok(); setInterval(krok, 1300);
+  }
+
   // Nahrávky hlasu ze složky zvuky/. jmena je seznam názvů souborů bez .mp3.
   // Hra se nejdřív načte pod obrazovkou "Bobík se připravuje": všechny nahrávky se stáhnou, uloží do
   // mezipaměti prohlížeče (Cache API, příště je to hned) a změní se na lokální adresy, takže se pak
@@ -79,7 +122,7 @@ const Hry = (() => {
   }
 
   // Vrací Promise, který skončí, až jsou nahrávky načtené a dítě klepne na "Hrát".
-  async function nactiHlas(slozka, jmena, { logo = "../obrazky/bobik.jpg" } = {}) {
+  async function nactiHlas(slozka, jmena, { logo = "../obrazky/bobik.jpg", hudba: varHudby = 0 } = {}) {
     jmena.forEach(n => { voices[n] = slozka + n + ".mp3"; });
     const ov = obrazovkaNacitani(logo);
     let mezipamet = null;
@@ -97,6 +140,7 @@ const Hry = (() => {
     };
     await Promise.all(Array.from({ length: 6 }, pracovnik));
     await ov.hotovo();
+    if (varHudby !== false) hudba(varHudby);
   }
 
   // rekni("spravne") vybere náhodně spravne1..spravne9, pokud přesný název neexistuje.
@@ -198,6 +242,6 @@ const Hry = (() => {
   function uloz(klic, hodnota) { try { localStorage.setItem(klic, JSON.stringify(hodnota)); } catch (e) {} }
   function nacti(klic, vychozi) { try { const v = localStorage.getItem(klic); return v ? JSON.parse(v) : vychozi; } catch (e) { return vychozi; } }
 
-  return { sleep, tone, zvuky, nactiHlas, rekni, zastav, nastavTlacitkoZvuku, oslava, uklidOslavu, uloz, nacti,
+  return { sleep, tone, hudba, zvuky, nactiHlas, rekni, zastav, nastavTlacitkoZvuku, oslava, uklidOslavu, uloz, nacti,
            get ztlumeno() { return muted; } };
 })();

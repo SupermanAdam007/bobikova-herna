@@ -71,7 +71,7 @@ const TEMATA = [
 const JEDNOTKY = ["AB", "AB", "AB", "AAB", "ABB", "AAB", "ABC", "ABC", "AABB", "ABCB"];
 
 const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "zkus1", "zkus2", "otazka1", "otazka2", "otazka3", "konec"];
-Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
+Hry.nactiHlas("zvuky/", jmena, { hudba: 1 }).then(() => Hry.rekni("ahoj", { delay: 200 }));
 Hry.nastavTlacitkoZvuku($("zvuk"));
 
 let kolo = 0, body = 0, spravna = null, zamceno = false, chyba = false, pocetPrvku = 6;
