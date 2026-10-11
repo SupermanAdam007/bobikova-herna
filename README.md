@@ -36,3 +36,6 @@ Klíč `ELEVENLABS_APIKEY` se čte jen z prostředí a do souborů se nezapisuje
 ## Další soubory
 - `hry.md`: nápady na další hry do herny
 - Materiály k prezentaci ve škole (plán, checklist, bezpečnost, hry bez počítače, vizitky s QR kódem) jsou v samostatném projektu `ada-skola-prezentace`.
+
+## Kontakt
+Autor her: [Adam Pavlát na LinkedInu](https://www.linkedin.com/in/adam-pavlat/). Když budete něco potřebovat, klidně mi napište.
