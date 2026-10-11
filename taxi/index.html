@@ -198,8 +198,8 @@ function pripasuj() {
 addEventListener("resize", pripasuj);
 
 // ---------- Kreslení ----------
-function emoji(e, x, y, vel) {
-  ctx.save(); ctx.translate(x, y); ctx.scale(-1, 1);   // scéna je zrcadlená, tak emoji otočíme zpět
+function emoji(e, x, y, vel, otoc = false) {
+  ctx.save(); ctx.translate(x, y); if (otoc) ctx.scale(-1, 1);   // auta jedou doprava, emoji aut koukají doleva, proto je otočíme
   ctx.globalAlpha = 1; ctx.fillStyle = "#000";
   ctx.font = vel + "px serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
   ctx.fillText(e, 0, 0); ctx.restore();
@@ -207,7 +207,7 @@ function emoji(e, x, y, vel) {
 
 function kresli() {
   const oy = H - 400;                   // nad silnicí je víc nebe, když je obrazovka vysoká
-  ctx.save(); ctx.translate(0, oy); ctx.translate(W, 0); ctx.scale(-1, 1);   // taxík jede doleva, emoji aut koukají doleva
+  ctx.save(); ctx.translate(0, oy);
   const nebe = ctx.createLinearGradient(0, -oy, 0, 120);
   nebe.addColorStop(0, "#74c0fc"); nebe.addColorStop(1, "#d0ebff");
   ctx.fillStyle = nebe; ctx.fillRect(0, -oy, W, 120 + oy);
@@ -227,9 +227,9 @@ function kresli() {
   ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(bx, 10, bs, 14);
   ctx.fillStyle = "#ffe066"; ctx.fillRect(bx, 10, bs * pomer, 14);
   emoji("🏁", bx + bs + 28, 36, 34);
-  emoji("🚕", bx + bs * pomer, 36, 26);
+  emoji("🚕", bx + bs * pomer, 36, 26, true);
   // auta a taxík podle pruhů (zadní vrstvy první)
-  const polozka = auta.map(a => ({ y: ZEM(a.pruh), kresli: () => emoji(a.e, a.x, ZEM(a.pruh), a.vel) }));
+  const polozka = auta.map(a => ({ y: ZEM(a.pruh), kresli: () => emoji(a.e, a.x, ZEM(a.pruh), a.vel, true) }));
   const taxiY = SILNICE + PAS * pruh + 72;
   let tx = TAXI_X, ty = taxiY - z;
   if (stav === "naraz") { tx += Math.sin(cas * 60) * 6; ty += Math.cos(cas * 50) * 3; }
@@ -237,7 +237,7 @@ function kresli() {
     ctx.fillStyle = "rgba(0,0,0,.3)";
     const sirka = 40 * (1 - z / (SKOK_VYSKA * 2));
     ctx.beginPath(); ctx.ellipse(TAXI_X, taxiY - 4, sirka, 8, 0, 0, 7); ctx.fill();
-    emoji("🚕", tx, ty, TAXI_VEL);
+    emoji("🚕", tx, ty, TAXI_VEL, true);
     if (stav === "naraz") emoji("💥", tx + 40, ty - 20, 54);
   } });
   polozka.sort((a, b) => a.y - b.y).forEach(p => p.kresli());
