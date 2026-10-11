@@ -127,7 +127,7 @@ const hz = m => 440 * Math.pow(2, (m - 69) / 12);
 let hudbaT = 0, hudbaKrok = 0;
 function hudbaTik() {
   const ted = performance.now();
-  if (pauza || stav === "ceka" || stav === "konec") { hudbaT = 0; return; }
+  if (pauza || stav === "ceka" || stav === "konec" || Hry.hudbaVypnuta) { hudbaT = 0; return; }
   if (!hudbaT || hudbaT < ted - 500) hudbaT = ted + 50;
   const delka = (0.2 - 0.007 * kolo) * 1000;           // jedna osminka v ms
   while (hudbaT < ted + 300) {

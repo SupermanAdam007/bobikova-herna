@@ -556,7 +556,8 @@ function fail() {
   running = false; setEnabled(true);
 }
 
-$("mute").onclick = () => { muted = !muted; if (muted) Hry.zastav(); $("mute").textContent = muted ? "🔇" : "🔊"; if (!muted) sfx.click("U"); };
+Hry.pridejTlacitkoHudby($("mute"));
+$("mute").onclick = () => { muted = !muted; Hry.nastavZtlumeno(muted); $("mute").textContent = muted ? "🔇" : "🔊"; if (!muted) sfx.click("U"); };
 // Nejdřív se načtou všechny hlasy (obrazovka "Bobík se připravuje"), pak robot pozdraví.
 Hry.nactiHlas("zvuky/", VOICE_FILES, { hudba: "robot" }).then(() => { if (level === 0 && !program.length) voice("ahoj", { delay: 200 }); });
 window.addEventListener("resize", () => { placeRobot(); updateMarker(); });

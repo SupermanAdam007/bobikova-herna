@@ -59,12 +59,13 @@ const Hry = (() => {
                mel: { typ: "triangle", dur: 2.4, vol: .06, sance: .65, zvonek: .15 }, bas: { typ: "sine", dur: 3, vol: .06, kazdy: 3 } },
   };
   let hudbaBezi = false;
+  let hudbaVyp = !!nacti("hudbaVyp", false);   // hudbu lze vypnout zvlášť, hlas a zvuky zůstanou
   function hudba(jmeno = "ohen") {
     if (hudbaBezi) return; hudbaBezi = true;
     const h = HUDBA[jmeno] || HUDBA.ohen;
     let akord = 0, takt = 0, posledni = -1;
     const krok = () => {
-      if (!muted) {
+      if (!muted && !hudbaVyp) {
         const [koren, druh] = h.akordy[akord], mel = TONY[druh];
         if (h.bas && takt % h.bas.kazdy === 0) {
           tone(hz(koren - 12), h.bas.dur, { type: h.bas.typ, vol: h.bas.vol });
@@ -184,7 +185,24 @@ const Hry = (() => {
   }
   window.addEventListener("pointerdown", odemkni, { passive: true });
 
+  // Tlačítko 🎵 vedle tlačítka zvuku: vypíná jen hudbu na pozadí (volba se pamatuje).
+  function pridejTlacitkoHudby(vedle) {
+    if (document.getElementById("hudbaTl")) return;
+    const b = document.createElement("button");
+    if (!document.getElementById("hudbaCss")) {   // styl je tady, protože ho potřebuje i Robot, který nemá společné CSS
+      const s = document.createElement("style"); s.id = "hudbaCss";
+      s.textContent = "#hudbaTl.vyp{opacity:.6;position:relative}#hudbaTl.vyp::after{content:'';position:absolute;left:20%;right:20%;top:50%;height:3px;background:#ff6b6b;border-radius:2px;transform:rotate(-45deg);box-shadow:0 0 0 1px #1f2a5a}";
+      document.head.appendChild(s);
+    }
+    b.id = "hudbaTl"; b.className = "kulate"; b.title = "Hudba"; b.textContent = "🎵";
+    if (vedle.style.cssText) b.style.cssText = vedle.style.cssText;
+    const nastav = () => { b.classList.toggle("vyp", hudbaVyp); b.title = hudbaVyp ? "Zapnout hudbu" : "Vypnout hudbu"; };
+    b.onclick = () => { hudbaVyp = !hudbaVyp; uloz("hudbaVyp", hudbaVyp); nastav(); if (!muted) zvuky.klik(); };
+    nastav(); vedle.insertAdjacentElement("afterend", b);
+  }
+
   function nastavTlacitkoZvuku(btn) {
+    pridejTlacitkoHudby(btn);
     btn.onclick = () => {
       muted = !muted; btn.textContent = muted ? "🔇" : "🔊";
       if (muted) zastav(); else zvuky.klik();
@@ -248,6 +266,6 @@ const Hry = (() => {
   function uloz(klic, hodnota) { try { localStorage.setItem(klic, JSON.stringify(hodnota)); } catch (e) {} }
   function nacti(klic, vychozi) { try { const v = localStorage.getItem(klic); return v ? JSON.parse(v) : vychozi; } catch (e) { return vychozi; } }
 
-  return { sleep, tone, hudba, zvuky, nactiHlas, rekni, zastav, nastavTlacitkoZvuku, oslava, uklidOslavu, uloz, nacti,
+  return { sleep, tone, hudba, pridejTlacitkoHudby, nastavZtlumeno(v) { muted = !!v; if (muted) zastav(); }, get hudbaVypnuta() { return hudbaVyp; }, zvuky, nactiHlas, rekni, zastav, nastavTlacitkoZvuku, oslava, uklidOslavu, uloz, nacti,
            get ztlumeno() { return muted; } };
 })();
