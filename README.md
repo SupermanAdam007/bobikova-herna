@@ -14,6 +14,15 @@ Adresa po zapnutí GitHub Pages: https://supermanadam007.github.io/bobikova-hern
 
 Hry nic neodesílají na internet, nemají přihlášení ani reklamy. Jediné, co se ukládá, je v prohlížeči dítěte hvězdička u hotových písmen.
 
+## Lokální spuštění
+Hry jsou statické, stačí spustit jednoduchý server v kořeni projektu a otevřít `http://localhost:8765/`:
+
+```
+python3 -m http.server 8765
+```
+
+Z mobilu na stejné wifi otevři `http://<IP-adresa-počítače>:8765/`.
+
 ## Struktura
 - `index.html`: rozcestník s výběrem třídy (obrázky v `obrazky/`). Novou hru přidáš do seznamu `HRY` v `index.html` a nastavíš jí třídu, např. `trida: [2]`.
 - `robot/`, `abeceda/`, `psani/`, `rady/`, `scitani/`, `taxi/`: jednotlivé hry, každá má `index.html` a složku `zvuky/` s hlasem (mp3)
