@@ -79,6 +79,16 @@ for i, t in enumerate(["Kolik to je dohromady?", "Kolik to bude, když to sečte
     pridej("scitani", f"otazka{i}", "[curious]", t)
 pridej("scitani", "konec", "[very excited, cheering]", "Hotovo! Počítáš opravdu skvěle, jsi opravdová matematická jednička!")
 
+# ---------- Taxík na dálnici ----------
+pridej("taxi", "ahoj", "[cheerfully]", "Ahoj! Jsem taxikář Bobík. Auta objíždíme šipkami nahoru a dolů, a když je třeba, přes auto skočíme!")
+for i, t in enumerate(["Správně, dojeli jsme!", "Výborně, skvělá jízda!", "To je ono, šikulka!", "Skvělé, jsi dobrý řidič!"], 1):
+    pridej("taxi", f"spravne{i}", "[very excited]", t)
+for i, t in enumerate(["Bum! Nevadí, zkus to znovu!", "Jejda, narazili jsme. Zkus to ještě jednou."], 1):
+    pridej("taxi", f"bum{i}", "[friendly]", t)
+for i, t in enumerate(["Pozor na auta, jedeme dál!", "Pojď, vyrážíme na další cestu!", "Připrav se, jedeme dál!"], 1):
+    pridej("taxi", f"start{i}", "[cheerfully]", t)
+pridej("taxi", "konec", "[very excited, cheering]", "Hotovo! Jsi opravdu skvělý řidič taxíku!")
+
 def multipart(soubor):
     h = "----hranice"
     telo = (f'--{h}\r\nContent-Disposition: form-data; name="model_id"\r\n\r\nscribe_v1\r\n'

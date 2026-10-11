@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taxík na dálnici | Bobíkova herna</title>
+<link rel="icon" type="image/png" href="../obrazky/bobik-ikona.png">
+<link rel="apple-touch-icon" href="../obrazky/bobik-ikona.png">
+<link rel="stylesheet" href="../spolecne/spolecne.css">
+<style>
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  #platno { flex: 1; min-height: 0; width: 100%; object-fit: contain; border-radius: 16px; border: 4px solid #ffe066; background: #1f2a5a; display: block; }
+  #ovladani { flex: none; width: 100%; max-width: 760px; margin: 0 auto; height: clamp(110px, 30%, 220px); display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; }
+  #smery { display: grid; grid-template-rows: 1fr 1fr; gap: 8px; min-height: 0; }
+  .ovl {
+    border: 4px solid #fff; border-radius: 16px; font-family: inherit; font-weight: bold; color: #fff; cursor: pointer; padding: 0;
+    font-size: min(8dvh, 12vw); line-height: 1; box-shadow: 0 5px 0 rgba(0,0,0,.4); min-height: 0; touch-action: manipulation;
+  }
+  .ovl small { display: block; font-size: .32em; margin-top: 2px; }
+  .ovl:active, .ovl.stisk { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  #nahoru { background: #1864ab; } #dolu { background: #1864ab; }
+  #skoc { background: #e03131; font-size: min(11dvh, 16vw); }
+</style>
+</head>
+<body>
+  <div id="top">
+    <a class="domu" href="../index.html"><img class="logo" src="../obrazky/bobik.jpg" alt=""> Herna</a>
+    <h1>🚕 Taxík na dálnici</h1>
+    <span class="hvezdy" id="hvezdy"></span>
+    <button class="kulate" id="zvuk" title="Zvuk">🔊</button>
+  </div>
+
+  <div id="hlaska">Objeď auta šipkami a přeskoč je tlačítkem Skoč.</div>
+
+  <main>
+    <canvas id="platno" width="800" height="400"></canvas>
+    <div id="ovladani">
+      <div id="smery">
+        <button class="ovl" id="nahoru" title="Nahoru">⬆️</button>
+        <button class="ovl" id="dolu" title="Dolů">⬇️</button>
+      </div>
+      <button class="ovl" id="skoc" title="Skoč">🦘<small>Skoč</small></button>
+    </div>
+  </main>
+
+<script src="../spolecne/spolecne.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const KOL = 10; // počet úseků dálnice v jedné hře
+
+const jmena = ["ahoj", "spravne1", "spravne2", "spravne3", "spravne4", "bum1", "bum2", "start1", "start2", "start3", "konec"];
+Hry.nactiHlas("zvuky/", jmena).then(() => { Hry.rekni("ahoj", { delay: 200 }); novaHra(); });
+Hry.nastavTlacitkoZvuku($("zvuk"));
+
+const cv = $("platno"), ctx = cv.getContext("2d");
+let W = 800, H = 400;               // logická velikost plátna, přizpůsobí se obrazovce (viz pripasuj)
+const ZAKLAD = 800;                  // rychlosti se počítají vždy z této šířky, ať je hra stejně těžká
+
+const SILNICE = 150, PAS = 83;                 // horní okraj silnice a výška jednoho pruhu
+const ZEM = i => SILNICE + PAS * i + 72;       // spodek auta v pruhu i (0 až 2)
+const TAXI_X = 150, TAXI_VEL = 84, SKOK_CAS = 1.0, SKOK_VYSKA = 105, SKOK_BEZPECNE = 38;
+const AUTA = [["🚗", 74], ["🚙", 76], ["🚓", 74], ["🚐", 78], ["🚚", 84], ["🚌", 88]];
+
+let kolo = 0, body = 0, chyba = false, stav = "ceka";   // ceka, jede, naraz, cil, konec
+let pruh = 1, pruhCil = 1, z = 0, skokT = -1;           // pruh = plynulá poloha, z = výška nad silnicí
+let auta = [], radky = [], zbyvaRadku = 0, dalsiRadek = 0, rychlost = 0, mezera = 2, drah = 0, cas = 0, narazT = 0;
+const mraky = [[80, 30, 46], [330, 60, 38], [600, 22, 52], [760, 70, 36]];
+const stromy = [40, 220, 400, 560, 720];
+
+function hlaska(t, cls = "") { const h = $("hlaska"); h.textContent = t; h.className = cls; }
+const nahoda = n => Math.floor(Math.random() * n);
+
+function novaHra() {
+  kolo = 0; body = 0; $("hvezdy").textContent = "";
+  Hry.uklidOslavu();
+  dalsiKolo();
+}
+
+function dalsiKolo() {
+  if (kolo >= KOL) return konec();
+  kolo++; chyba = false;
+  auta = []; radky = [];
+  zbyvaRadku = 4 + Math.ceil(kolo * 0.6);
+  rychlost = ZAKLAD * (0.40 + 0.02 * kolo);
+  mezera = Math.max(1.4, 2.5 - 0.1 * kolo);
+  dalsiRadek = 1.6;
+  pruh = pruhCil = 1; z = 0; skokT = -1;
+  $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+  hlaska("Úsek " + kolo + " z " + KOL + ": objeď auta nebo je přeskoč.");
+  stav = "jede";
+  Hry.rekni("start", { delay: 200 });
+}
+
+// Jeden řádek aut: kolik pruhů je zablokovaných, závisí na kole. Nikdy ne všechny tři.
+function pridejRadek() {
+  const kolik = kolo <= 2 ? 1 : kolo <= 6 ? 1 + nahoda(2) : (Math.random() < 0.7 ? 2 : 1);
+  const volne = [0, 1, 2], rad = [];
+  for (let i = 0; i < kolik; i++) {
+    const p = volne.splice(nahoda(volne.length), 1)[0];
+    const typ = AUTA[nahoda(AUTA.length)];
+    const a = { x: W + 80, pruh: p, e: typ[0], vel: typ[1] };
+    auta.push(a); rad.push(a);
+  }
+  radky.push(rad); zbyvaRadku--;
+}
+
+function skoc() {
+  if (stav !== "jede" || skokT >= 0) return;
+  skokT = 0; Hry.zvuky.klik();
+}
+function posun(d) {
+  if (stav === "konec") return;
+  const n = Math.max(0, Math.min(2, pruhCil + d));
+  if (n !== pruhCil) { pruhCil = n; Hry.zvuky.klik(); }
+}
+function tlacitko(id, fn) {
+  const b = $(id);
+  b.addEventListener("pointerdown", e => { e.preventDefault(); fn(); });
+}
+tlacitko("nahoru", () => posun(-1));
+tlacitko("dolu", () => posun(1));
+tlacitko("skoc", skoc);
+addEventListener("keydown", e => {
+  if (e.key === "ArrowUp" || e.key === "w") posun(-1);
+  else if (e.key === "ArrowDown" || e.key === "s") posun(1);
+  else if (e.key === " " || e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); skoc(); }
+});
+
+function krok(dt) {
+  cas += dt;
+  if (stav === "naraz") {
+    narazT -= dt;
+    if (narazT <= 0) {
+      auta = auta.filter(a => a.x > TAXI_X + 420);  // odstraň auta kolem, ať se nenarazí hned znovu
+      dalsiRadek = 1.0; stav = "jede";
+      hlaska("Úsek " + kolo + " z " + KOL + ": objeď auta nebo je přeskoč.");
+    }
+    return;
+  }
+  if (stav === "konec") return;
+  drah = (drah + rychlost * dt) % 1e6;
+  // pruh a skok
+  const d = pruhCil - pruh, s = 5.5 * dt;
+  pruh = Math.abs(d) <= s ? pruhCil : pruh + Math.sign(d) * s;
+  if (skokT >= 0) {
+    skokT += dt;
+    const u = skokT / SKOK_CAS;
+    if (u >= 1) { skokT = -1; z = 0; } else z = SKOK_VYSKA * 4 * u * (1 - u);
+  }
+  // auta jedou stejným směrem, ale pomaleji než taxík
+  for (const a of auta) a.x -= rychlost * 0.75 * dt;
+  auta = auta.filter(a => a.x > -140);
+  if (stav === "jede") {
+    dalsiRadek -= dt;
+    if (zbyvaRadku > 0 && dalsiRadek <= 0) { pridejRadek(); dalsiRadek = mezera; }
+    for (const a of auta) {
+      if (Math.abs(a.x - TAXI_X) < a.vel * 0.3 + TAXI_VEL * 0.26 && Math.abs(pruh - a.pruh) < 0.55 && z < SKOK_BEZPECNE) return naraz();
+    }
+    if (zbyvaRadku === 0 && auta.every(a => a.x < TAXI_X - 70)) cil();
+  }
+}
+
+function naraz() {
+  stav = "naraz"; narazT = 1.4; chyba = true; skokT = -1; z = 0;
+  Hry.zvuky.spatne();
+  hlaska("Bum! Zkus to znovu.", "spatne");
+  Hry.rekni("bum", { delay: 250 });
+}
+
+async function cil() {
+  stav = "cil";
+  if (!chyba) body++;
+  $("hvezdy").textContent = "⭐ " + body + "/" + KOL;
+  Hry.zvuky.spravne();
+  hlaska("✔ Dojeli jsme!", "dobre");
+  await Hry.rekni("spravne", { delay: 200 });
+  await Hry.sleep(400);
+  dalsiKolo();
+}
+
+function konec() {
+  stav = "konec";
+  const vse = body === KOL;
+  hlaska("Hotovo! Máš " + body + " z " + KOL + " hvězdiček. Zahraj si znovu!", "dobre");
+  Hry.zvuky.fanfara();
+  Hry.oslava(vse, vse ? "🏆 Bezchybně! 🏆" : "🎉 Hotovo! 🎉");
+  Hry.rekni("konec", { delay: 1200 });
+  $("ovladani").innerHTML = '<button class="tlacitko" style="grid-column:1/3;font-size:24px" id="znovuHrat">🔄 Hrát znovu</button>';
+  $("znovuHrat").onclick = () => location.reload();
+}
+
+function pripasuj() {
+  const asp = cv.clientWidth / Math.max(1, cv.clientHeight);
+  W = asp < 1.5 ? 520 : 800;
+  H = Math.max(400, Math.round(W / asp));
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+}
+addEventListener("resize", pripasuj);
+
+// ---------- Kreslení ----------
+function emoji(e, x, y, vel) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(-1, 1);   // scéna je zrcadlená, tak emoji otočíme zpět
+  ctx.globalAlpha = 1; ctx.fillStyle = "#000";
+  ctx.font = vel + "px serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+  ctx.fillText(e, 0, 0); ctx.restore();
+}
+
+function kresli() {
+  const oy = H - 400;                   // nad silnicí je víc nebe, když je obrazovka vysoká
+  ctx.save(); ctx.translate(0, oy); ctx.translate(W, 0); ctx.scale(-1, 1);   // taxík jede doleva, emoji aut koukají doleva
+  const nebe = ctx.createLinearGradient(0, -oy, 0, 120);
+  nebe.addColorStop(0, "#74c0fc"); nebe.addColorStop(1, "#d0ebff");
+  ctx.fillStyle = nebe; ctx.fillRect(0, -oy, W, 120 + oy);
+  mraky.forEach(([x, y, v]) => emoji("☁️", ((x - drah * 0.05) % (W + 160) + W + 160) % (W + 160) - 60, y + v, v));
+  ctx.fillStyle = "#69db7c"; ctx.fillRect(0, 100, W, SILNICE - 100);
+  stromy.forEach(x => emoji("🌳", ((x - drah * 0.4) % (W + 100) + W + 100) % (W + 100) - 40, 142, 50));
+  ctx.fillStyle = "#495057"; ctx.fillRect(0, SILNICE, W, H - SILNICE);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, SILNICE, W, 4); ctx.fillRect(0, H - 4, W, 4);
+  for (let i = 1; i < 3; i++) {
+    for (let x = -((drah % 120)); x < W; x += 120) ctx.fillRect(x, SILNICE + PAS * i - 3, 64, 6);
+  }
+  // postup úseku
+  const celkem = 4 + Math.ceil(kolo * 0.6);
+  const hotovo = celkem - zbyvaRadku - radky.filter(r => r.some(a => auta.includes(a) && a.x >= TAXI_X - 70)).length;
+  const pomer = stav === "cil" ? 1 : Math.max(0, Math.min(1, hotovo / celkem));
+  const bx = 50, bs = W - 130;
+  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(bx, 10, bs, 14);
+  ctx.fillStyle = "#ffe066"; ctx.fillRect(bx, 10, bs * pomer, 14);
+  emoji("🏁", bx + bs + 28, 36, 34);
+  emoji("🚕", bx + bs * pomer, 36, 26);
+  // auta a taxík podle pruhů (zadní vrstvy první)
+  const polozka = auta.map(a => ({ y: ZEM(a.pruh), kresli: () => emoji(a.e, a.x, ZEM(a.pruh), a.vel) }));
+  const taxiY = SILNICE + PAS * pruh + 72;
+  let tx = TAXI_X, ty = taxiY - z;
+  if (stav === "naraz") { tx += Math.sin(cas * 60) * 6; ty += Math.cos(cas * 50) * 3; }
+  polozka.push({ y: taxiY, kresli: () => {
+    ctx.fillStyle = "rgba(0,0,0,.3)";
+    const sirka = 40 * (1 - z / (SKOK_VYSKA * 2));
+    ctx.beginPath(); ctx.ellipse(TAXI_X, taxiY - 4, sirka, 8, 0, 0, 7); ctx.fill();
+    emoji("🚕", tx, ty, TAXI_VEL);
+    if (stav === "naraz") emoji("💥", tx + 40, ty - 20, 54);
+  } });
+  polozka.sort((a, b) => a.y - b.y).forEach(p => p.kresli());
+  ctx.restore();
+}
+
+let posledni = 0;
+function smycka(t) {
+  const dt = Math.min(0.05, (t - posledni) / 1000 || 0); posledni = t;
+  krok(dt); kresli();
+  pripasuj(); requestAnimationFrame(smycka);
+}
+requestAnimationFrame(smycka);
+</script>
+</body>
+</html>
