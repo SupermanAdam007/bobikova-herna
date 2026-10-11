@@ -15,7 +15,7 @@ Adresa po zapnutí GitHub Pages: https://supermanadam007.github.io/bobikova-hern
 
 Hry nic neodesílají na internet, nemají přihlášení ani reklamy. Jediné, co se ukládá, je v prohlížeči dítěte hvězdička u hotových písmen.
 
-Ve všech hrách kromě Taxíku hraje klidná hudba na pozadí. Generuje ji `Hry.hudba(varianta)` v `spolecne/spolecne.js` přímo v prohlížeči (jemné tóny nad pomalou basou, tři varianty akordů) a vypíná se tlačítkem zvuku. `nactiHlas(..., { hudba: 1 })` vybere variantu, `{ hudba: false }` hudbu vypne.
+Ve všech hrách kromě Taxíku hraje klidná hudba na pozadí. Generuje ji `Hry.hudba(varianta)` v `spolecne/spolecne.js` přímo v prohlížeči (každá hra má vlastní náladu: tempo, zvuk a akordy, předvolby `HUDBA`) a vypíná se tlačítkem zvuku. `nactiHlas(..., { hudba: "robot" })` vybere předvolbu, `{ hudba: false }` hudbu vypne.
 
 ## Lokální spuštění
 Hry jsou statické, stačí spustit jednoduchý server v kořeni projektu a otevřít `http://localhost:8765/`:

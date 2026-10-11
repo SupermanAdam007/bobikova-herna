@@ -558,7 +558,7 @@ function fail() {
 
 $("mute").onclick = () => { muted = !muted; if (muted) Hry.zastav(); $("mute").textContent = muted ? "🔇" : "🔊"; if (!muted) sfx.click("U"); };
 // Nejdřív se načtou všechny hlasy (obrazovka "Bobík se připravuje"), pak robot pozdraví.
-Hry.nactiHlas("zvuky/", VOICE_FILES).then(() => { if (level === 0 && !program.length) voice("ahoj", { delay: 200 }); });
+Hry.nactiHlas("zvuky/", VOICE_FILES, { hudba: "robot" }).then(() => { if (level === 0 && !program.length) voice("ahoj", { delay: 200 }); });
 window.addEventListener("resize", () => { placeRobot(); updateMarker(); });
 // Rozložení se může změnit i bez změny okna (např. zalomení programu), proto hlídáme velikost hrací plochy.
 new ResizeObserver(() => { placeRobot(); updateMarker(); }).observe(board);

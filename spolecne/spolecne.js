@@ -35,46 +35,52 @@ const Hry = (() => {
   };
 
   // ---------- Klidná hudba na pozadí ----------
-  // Syntetizovaná v prohlížeči (jemné doznívající tóny nad pomalou basou), vypíná se tlačítkem zvuku.
-  const HUDBA = [
-    [ // 0: Am, F, C, G
-      { bas: [110, 164.8], mel: [220, 261.6, 329.6, 440, 523.3] },
-      { bas: [87.3, 130.8], mel: [174.6, 220, 261.6, 349.2, 440] },
-      { bas: [130.8, 196], mel: [261.6, 329.6, 392, 523.3, 659.3] },
-      { bas: [98, 146.8], mel: [196, 246.9, 293.7, 392, 493.9] },
-    ],
-    [ // 1: C, G, Am, F (světlejší)
-      { bas: [130.8, 196], mel: [261.6, 329.6, 392, 523.3, 659.3] },
-      { bas: [98, 146.8], mel: [196, 246.9, 293.7, 392, 493.9] },
-      { bas: [110, 164.8], mel: [220, 261.6, 329.6, 440, 523.3] },
-      { bas: [87.3, 130.8], mel: [174.6, 220, 261.6, 349.2, 440] },
-    ],
-    [ // 2: D, A, Bm, G (zasněná)
-      { bas: [73.4, 110], mel: [146.8, 185, 220, 293.7, 370] },
-      { bas: [110, 164.8], mel: [220, 277.2, 329.6, 440, 554.4] },
-      { bas: [123.5, 185], mel: [246.9, 293.7, 370, 493.9, 587.3] },
-      { bas: [98, 146.8], mel: [196, 246.9, 293.7, 392, 493.9] },
-    ],
-  ];
+  // Syntetizovaná v prohlížeči, vypíná se tlačítkem zvuku. Každá hra má vlastní náladu (tempo, zvuk, akordy).
+  const TONY = { dur: [0, 4, 7, 12, 16], moll: [0, 3, 7, 12, 15], moll7: [0, 3, 7, 10, 14], dur7: [0, 4, 7, 11, 14] };
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const HUDBA = {
+    // Ohniště: pomalé zvonivé tóny nad hlubokou basou (Am, F, C, G)
+    ohen:    { akordy: [[57, "moll"], [53, "dur"], [60, "dur"], [55, "dur"]], tempo: 1300, takty: 6, oktava: 0,
+               mel: { typ: "sine", dur: 3.2, vol: .06, sance: .75, zvonek: .25 }, bas: { typ: "triangle", dur: 7, vol: .05, kazdy: 6 } },
+    // Robot: hravá hrací skříňka, rychlejší krátké tóny (C, F, G, C)
+    robot:   { akordy: [[48, "dur"], [53, "dur"], [55, "dur"], [48, "dur"]], tempo: 620, takty: 8, oktava: 12,
+               mel: { typ: "triangle", dur: 1.0, vol: .07, sance: .8, zvonek: 0 }, bas: { typ: "sine", dur: 1.3, vol: .06, kazdy: 3 } },
+    // Abeceda: jasné zvonkohry, vyšší tóny (Gmaj7, Em, Cmaj7, D)
+    abeceda: { akordy: [[55, "dur7"], [52, "moll"], [48, "dur7"], [50, "dur"]], tempo: 900, takty: 6, oktava: 12,
+               mel: { typ: "sine", dur: 2.2, vol: .06, sance: .7, zvonek: .6 }, bas: { typ: "triangle", dur: 4, vol: .04, kazdy: 6 } },
+    // Psaní: velmi pomalá zasněná plocha, dlouhé tóny (Dmaj7, Bm7, Gmaj7, A)
+    psani:   { akordy: [[50, "dur7"], [47, "moll7"], [43, "dur7"], [45, "dur"]], tempo: 2000, takty: 4, oktava: 0,
+               mel: { typ: "sine", dur: 6, vol: .045, sance: .5, zvonek: .1 }, bas: { typ: "triangle", dur: 10, vol: .05, kazdy: 4 } },
+    // Co bude dál?: dřevěná marimba, klidná chůze (F, Bb, C, Am)
+    rady:    { akordy: [[53, "dur"], [58, "dur"], [60, "dur"], [57, "moll"]], tempo: 1000, takty: 8, oktava: 12,
+               mel: { typ: "triangle", dur: 1.6, vol: .08, sance: .85, zvonek: 0 }, bas: { typ: "triangle", dur: 1.8, vol: .07, kazdy: 2 } },
+    // Sčítání: jemné jazzové akordy (Dm7, Gm7, Bbmaj7, Am7)
+    scitani: { akordy: [[50, "moll7"], [55, "moll7"], [58, "dur7"], [57, "moll7"]], tempo: 1150, takty: 6, oktava: 0,
+               mel: { typ: "triangle", dur: 2.4, vol: .06, sance: .65, zvonek: .15 }, bas: { typ: "sine", dur: 3, vol: .06, kazdy: 3 } },
+  };
   let hudbaBezi = false;
-  function hudba(varianta = 0) {
+  function hudba(jmeno = "ohen") {
     if (hudbaBezi) return; hudbaBezi = true;
-    const akordy = HUDBA[varianta % HUDBA.length];
+    const h = HUDBA[jmeno] || HUDBA.ohen;
     let akord = 0, takt = 0, posledni = -1;
     const krok = () => {
       if (!muted) {
-        const a = akordy[akord];
-        if (takt === 0) a.bas.forEach(f => tone(f, 7, { type: "triangle", vol: .05 }));
-        if (Math.random() < .75) {
-          let i; do { i = (Math.random() * a.mel.length) | 0; } while (i === posledni);
+        const [koren, druh] = h.akordy[akord], mel = TONY[druh];
+        if (h.bas && takt % h.bas.kazdy === 0) {
+          tone(hz(koren - 12), h.bas.dur, { type: h.bas.typ, vol: h.bas.vol });
+          tone(hz(koren - 5), h.bas.dur, { type: h.bas.typ, vol: h.bas.vol * .7 });
+        }
+        if (Math.random() < h.mel.sance) {
+          let i; do { i = (Math.random() * mel.length) | 0; } while (i === posledni);
           posledni = i;
-          tone(a.mel[i], 3.2, { type: "sine", vol: .06 });
-          if (Math.random() < .25) tone(a.mel[i] * 2, 2.2, { type: "sine", vol: .02, delay: .02 });
+          const f = hz(koren + h.oktava + mel[i]);
+          tone(f, h.mel.dur, { type: h.mel.typ, vol: h.mel.vol });
+          if (Math.random() < h.mel.zvonek) tone(f * 2, h.mel.dur * .7, { type: "sine", vol: h.mel.vol * .35, delay: .02 });
         }
       }
-      if (++takt >= 6) { takt = 0; akord = (akord + 1) % akordy.length; }
+      if (++takt >= h.takty) { takt = 0; akord = (akord + 1) % h.akordy.length; }
     };
-    krok(); setInterval(krok, 1300);
+    krok(); setInterval(krok, h.tempo);
   }
 
   // Nahrávky hlasu ze složky zvuky/. jmena je seznam názvů souborů bez .mp3.
@@ -122,7 +128,7 @@ const Hry = (() => {
   }
 
   // Vrací Promise, který skončí, až jsou nahrávky načtené a dítě klepne na "Hrát".
-  async function nactiHlas(slozka, jmena, { logo = "../obrazky/bobik.jpg", hudba: varHudby = 0 } = {}) {
+  async function nactiHlas(slozka, jmena, { logo = "../obrazky/bobik.jpg", hudba: varHudby = "ohen" } = {}) {
     jmena.forEach(n => { voices[n] = slozka + n + ".mp3"; });
     const ov = obrazovkaNacitani(logo);
     let mezipamet = null;
