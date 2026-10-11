@@ -116,6 +116,31 @@ $("pauza").onclick = () => prepniPauzu();
 cv.addEventListener("pointerdown", () => { if (pauza) prepniPauzu(false); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) prepniPauzu(true); });
 
+// ---------- Hudba ----------
+// Dramatická osmibitová smyčka (Am, F, G, E) generovaná zvukem v prohlížeči. S každým úsekem zrychluje.
+const MELODIE = [
+  [69, 72, 76, 72, 69, 72, 76, 81], [69, 72, 77, 72, 69, 72, 77, 72],
+  [71, 74, 79, 74, 71, 74, 79, 74], [68, 71, 76, 71, 68, 71, 76, 71],
+];
+const BAS = [45, 41, 43, 40];
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+let hudbaT = 0, hudbaKrok = 0;
+function hudbaTik() {
+  const ted = performance.now();
+  if (pauza || stav === "ceka" || stav === "konec") { hudbaT = 0; return; }
+  if (!hudbaT || hudbaT < ted - 500) hudbaT = ted + 50;
+  const delka = (0.2 - 0.007 * kolo) * 1000;           // jedna osminka v ms
+  while (hudbaT < ted + 300) {
+    const d = Math.max(0, (hudbaT - ted) / 1000);
+    const takt = Math.floor(hudbaKrok / 8) % 4, k = hudbaKrok % 8;
+    Hry.tone(hz(BAS[takt]), 0.16, { type: "sawtooth", vol: 0.045, delay: d });
+    if (k % 2 === 0) Hry.tone(110, 0.1, { type: "sine", vol: 0.1, delay: d, slide: -70 });
+    Hry.tone(hz(MELODIE[takt][k]), 0.14, { type: "square", vol: 0.025, delay: d });
+    hudbaKrok++; hudbaT += delka;
+  }
+}
+setInterval(hudbaTik, 60);
+
 function skoc() {
   if (pauza || stav !== "jede" || skokT >= 0) return;
   skokT = 0; Hry.zvuky.klik();
