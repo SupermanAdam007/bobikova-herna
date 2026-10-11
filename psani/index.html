@@ -68,8 +68,8 @@ const jmena = ["ahoj", "skvele1", "skvele2", "skvele3", "zkus1", "zkus2", "konec
 PISMENA.forEach(p => jmena.push("obtahni_" + p.id));
 Hry.nactiHlas("zvuky/", jmena).then(() => Hry.rekni("ahoj", { delay: 200 }));
 
-const PRAH_POKRYTI = 0.75;   // kolik z písmene musí být obtažené
-const MAX_MIMO = 0.40;       // kolik čmáranice smí být mimo písmeno
+const PRAH_POKRYTI = 0.85;   // kolik z písmene musí být obtažené
+const MAX_MIMO = 0.35;       // kolik čmáranice smí být mimo písmeno
 const PRAH_CASTI = 0.6;      // každá samostatná část (háček, čárka, tečka) musí být obtažená aspoň takto
 
 let rezim = "male", polozky = [], index = 0, tahy = [], hotovo = Hry.nacti("psani_hotovo", {}), zamceno = false, kresli = null;
@@ -112,16 +112,19 @@ function velikost() {
   for (const c of [cp, ck, cc]) c.setTransform(dpr, 0, 0, dpr, 0, 0);
   rozlozeni();
 }
-// Písmeno je obrázková maska vyříznutá ze vzorového listu (psani/pismena/*.png, výška malého písmene = 100 px),
-// háčky, čárky, kroužky a tečky se k ní dokreslují jako krátké čáry (PISMO[znak].z).
+// Předloha je výřez z originálního vzorového listu (psani/pismena/*.png, výška malého písmene = 140 px, včetně směrových šipek).
+// K ní patří logická maska písmene (*_maska.png), podle které se vyhodnocuje. Háčky, čárky, kroužky a tečky
+// se dokreslují jako krátké čáry (PISMO[znak].z).
 const OBR = {};
 function nactiObrazky() {
-  return Promise.all(Object.keys(PISMO).map(k => new Promise(res => {
-    const im = new Image(); im.onload = im.onerror = res; im.src = "pismena/" + PISMO[k].f; OBR[k] = im;
-  })));
+  const sl = [];
+  for (const k of Object.keys(PISMO)) for (const soubor of [PISMO[k].f, PISMO[k].k]) {
+    if (OBR[soubor]) continue;
+    sl.push(new Promise(res => { const im = new Image(); im.onload = im.onerror = res; im.src = "pismena/" + soubor; OBR[soubor] = im; }));
+  }
+  return Promise.all(sl);
 }
 function sirkaPisma(t) { const g = PISMO[t]; return { od: g.u0, sirka: Math.max(0.5, g.u1 - g.u0) }; }
-function tloustkaCary() { return Math.max(12, XH * 0.12); }
 function rozlozeni() {
   const t = polozky[index] ? polozky[index].text : "a";
   const sz = sirkaPisma(t);
@@ -130,36 +133,38 @@ function rozlozeni() {
   xText = (W - sz.sirka * XH) / 2 - sz.od * XH;
   yZakl = H * 0.66;
 }
-// obrázek písmene s okrajem rozšířeným o poloměr r (několik kruhů posunutých kopií)
-function obrazek(c, t, r) {
-  const g = PISMO[t], im = OBR[t], k = XH / 100;
-  const ox = xText - g.bx * k, oy = yZakl - g.by * k;
-  if (r < 1) { c.drawImage(im, ox, oy, g.w * k, g.h * k); return; }
-  c.drawImage(im, ox, oy, g.w * k, g.h * k);
+// obrázek písmene (soubor) s okrajem rozšířeným o poloměr r (několik kruhů posunutých kopií)
+function obrazek(c, t, soubor, r) {
+  const g = PISMO[t], im = OBR[soubor], k = XH / 140;
+  const ox = xText - g.bx * k, oy = yZakl - g.by * k, w = g.w * k, h = g.h * k;
+  c.drawImage(im, ox, oy, w, h);
+  if (r < 1) return;
   for (const f of [1 / 3, 2 / 3, 1]) {
     const rr = r * f, n = Math.max(8, Math.min(40, Math.ceil(rr * 2.4)));
     for (let i = 0; i < n; i++) {
       const a = i / n * Math.PI * 2;
-      c.drawImage(im, ox + Math.cos(a) * rr, oy + Math.sin(a) * rr, g.w * k, g.h * k);
+      c.drawImage(im, ox + Math.cos(a) * rr, oy + Math.sin(a) * rr, w, h);
     }
   }
 }
-// vykreslí písmeno do daného kontextu: tloustka = o kolik je tah tlustší než základní tloušťka čáry
-function textDo(c, t, tloustka) {
-  const sirka = tloustkaCary() + (tloustka || 0);
-  obrazek(c, t, sirka / 2);
-  c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = sirka; c.strokeStyle = "#000";
+function znacky(c, t, sirka) {
+  c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = sirka;
   const X = u => xText + u * XH, Y = w => yZakl - w * XH;
   for (const z of PISMO[t].z) {
     c.beginPath(); z.forEach((p, i) => i ? c.lineTo(X(p[0]), Y(p[1])) : c.moveTo(X(p[0]), Y(p[1]))); c.stroke();
     if (z.length === 2 && Math.hypot(z[1][0] - z[0][0], z[1][1] - z[0][1]) < 0.05) { c.beginPath(); c.arc(X(z[0][0]), Y(z[0][1]), sirka / 2, 0, 7); c.fill(); }
   }
 }
-// zabarvená kopie písmene na pomocném plátně (pro předlohu)
-function barevne(t, extra, barva) {
+// maska písmene rozšířená o poloměr r (pro vyhodnocení)
+function maskaDo(c, t, r) {
+  obrazek(c, t, PISMO[t].k, r);
+  c.fillStyle = c.strokeStyle = "#000"; znacky(c, t, Math.max(2, 2 * r));
+}
+// zabarvená maska na pomocném plátně
+function barevne(t, r, barva) {
   const o = document.createElement("canvas"); o.width = W * dpr; o.height = H * dpr;
-  const x = o.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.fillStyle = "#000";
-  textDo(x, t, extra);
+  const x = o.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  maskaDo(x, t, r);
   x.globalCompositeOperation = "source-in"; x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = barva; x.fillRect(0, 0, o.width, o.height);
   return o;
 }
@@ -174,10 +179,10 @@ function nakresliPodklad(hotovoZelene) {
   for (const y of [yZakl - XH, yZakl - 2 * XH]) { cp.beginPath(); cp.moveTo(0, y); cp.lineTo(W, y); cp.stroke(); }
   cp.restore();
   const t = polozky[index].text;
-  // předloha: světlý tah s tmavým obrysem a tenkou středovou čárou, který se obtahuje
-  for (const [extra, barva] of [[12, hotovoZelene ? "#2b8a3e" : "#4c6ef5"], [0, hotovoZelene ? "#b2f2bb" : "#e7ecff"]])
-    cp.drawImage(barevne(t, extra, barva), 0, 0, W, H);
-  cp.save(); cp.globalAlpha = 0.55; cp.drawImage(barevne(t, -tloustkaCary() + 3, hotovoZelene ? "#2b8a3e" : "#4c6ef5"), 0, 0, W, H); cp.restore();
+  if (hotovoZelene) cp.drawImage(barevne(t, XH * 0.06, "rgba(81,207,102,.55)"), 0, 0, W, H);
+  // předloha: originální výřez, značky nad písmenem jsou dokreslené stejnou tmavou čarou
+  obrazek(cp, t, PISMO[t].f, 0);
+  cp.fillStyle = cp.strokeStyle = "#141414"; znacky(cp, t, Math.max(3, XH * 0.03));
 }
 function sirkaStopy() { return Math.max(12, S * 0.085); }
 
@@ -208,7 +213,14 @@ const konecTahu = e => { if (!kresli) return; kresli = null; vyhodnot(); };
 kre.addEventListener("pointerup", konecTahu);
 kre.addEventListener("pointercancel", konecTahu);
 
-// ---------- Vyhodnocení: kolik z písmene je obtažené a kolik čmáranice je mimo ----------
+// ---------- Vyhodnocení ----------
+// Hra posuzuje čtyři věci:
+//  1. pokrytí: kolik z koridoru kolem písmene je obtažené,
+//  2. díry: největší souvislý neobtažený kus nesmí být velký (nejde přeskočit celou část písmene),
+//  3. samostatné části (háček, čárka, tečka) se musí obtáhnout každá zvlášť,
+//  4. čmáranice: kolik nakresleného leží daleko od písmene.
+const POKR_NASOB = 1.9;       // šířka čáry při měření pokrytí (násobek šířky stopy)
+const MAX_DIRA = 0.08;        // největší neobtažený souvislý kus jako podíl celého písmene
 function malePlatno() { const c = document.createElement("canvas"); c.width = Math.round(W / 2); c.height = Math.round(H / 2); return c; }
 function data(c) { return c.getContext("2d").getImageData(0, 0, c.width, c.height).data; }
 function vykresliTahy(c, sirka) {
@@ -221,50 +233,56 @@ function vykresliTahy(c, sirka) {
 }
 function vyhodnot() {
   const t = polozky[index].text;
-  const mask = malePlatno(), tol = malePlatno(), pokr = malePlatno(), uziv = malePlatno();
-  for (const [c, tl] of [[mask, 0], [tol, S * 0.12]]) {
-    const x = c.getContext("2d"); x.setTransform(c.width / W, 0, 0, c.height / H, 0, 0);
-    x.fillStyle = x.strokeStyle = "#000"; textDo(x, t, tl);
+  const mask = malePlatno(), tol = malePlatno(), pokr = malePlatno(), uziv = malePlatno(), stred = malePlatno();
+  for (const [c, r] of [[mask, XH * 0.03], [tol, XH * 0.22]]) {
+    const x = c.getContext("2d"); x.setTransform(c.width / W, 0, 0, c.height / H, 0, 0); maskaDo(x, t, r);
   }
-  vykresliTahy(pokr, sirkaStopy() * 1.9);   // shovívavé pokrytí: čára nemusí sedět přesně
+  vykresliTahy(pokr, sirkaStopy() * POKR_NASOB);   // čára nemusí sedět úplně přesně
   vykresliTahy(uziv, sirkaStopy());
-  const stred = malePlatno(); vykresliTahy(stred, sirkaStopy() * 1.4);   // pro drobné části: čára musí opravdu ležet na nich
+  vykresliTahy(stred, sirkaStopy() * 1.2);          // pro drobné části: čára musí opravdu ležet na nich
   const m = data(mask), tl = data(tol), p = data(pokr), u = data(uziv), sd = data(stred);
+  const w = mask.width, h = mask.height;
   let celkem = 0, pokryto = 0, uzivPix = 0, mimo = 0;
-  const chybejici = malePlatno(), cx = chybejici.getContext("2d"), ci = cx.createImageData(chybejici.width, chybejici.height);
+  const nepokryte = new Uint8Array(w * h);
+  const chybejici = malePlatno(), cx = chybejici.getContext("2d"), ci = cx.createImageData(w, h);
   for (let i = 3; i < m.length; i += 4) {
-    if (m[i] > 100) { celkem++; if (p[i] > 40) pokryto++; else { ci.data[i - 3] = 255; ci.data[i - 2] = 200; ci.data[i - 1] = 0; ci.data[i] = 255; } }
+    if (m[i] > 100) {
+      celkem++;
+      if (p[i] > 40) pokryto++;
+      else { nepokryte[(i - 3) / 4] = 1; ci.data[i - 3] = 255; ci.data[i - 2] = 200; ci.data[i - 1] = 0; ci.data[i] = 255; }
+    }
     if (u[i] > 40) { uzivPix++; if (tl[i] < 40) mimo++; }
   }
   cx.putImageData(ci, 0, 0);
-  let pokryti = celkem ? pokryto / celkem : 0;
+  const pokryti = celkem ? pokryto / celkem : 0;
   const mimoPodil = uzivPix ? mimo / uzivPix : 0;
-  // Samostatné části písmene (háček, čárka, tečka nad i) se musí obtáhnout každá zvlášť,
-  // jinak by hra uznala třeba "s" ještě před dokreslením háčku nad "š".
-  const casti = souvisleCasti(m, mask.width, mask.height);
-  let nejhorsi = 1, chybiCast = false;
+  // největší souvislý neobtažený kus
+  const diry = souvisleCasti(w, h, i => nepokryte[i] === 1);
+  const nejvetsiDira = diry.reduce((a, c) => Math.max(a, c.length), 0) / Math.max(1, celkem);
+  const maDiru = nejvetsiDira > MAX_DIRA;
+  // samostatné části písmene (háček, čárka, tečka nad i) se hodnotí zvlášť
+  const casti = souvisleCasti(w, h, i => m[i * 4 + 3] > 100);
+  let chybiCast = false;
   const nejvetsi = casti.reduce((a, c) => Math.max(a, c.length), 0);
   for (const c of casti) {
-    // hlavní tělo písmene se hodnotí shovívavě, ale každá další část (háček, čárka, kroužek, tečka)
-    // přísněji a užší čarou: tlustá čára vedená těsně pod nimi by je jinak "pokryla"
-    // a hra by uznala písmeno bez háčku
-    const vedlejsi = c.length < nejvetsi;
+    // hlavní tělo se hodnotí shovívavě, další části (háček, čárka, kroužek, tečka) přísněji a užší čarou
+    const vedlejsi = c.length < nejvetsi * 0.5;
     const pole = vedlejsi ? sd : p;
     let ok = 0;
     for (const i of c) if (pole[i * 4 + 3] > 40) ok++;
-    const pod = ok / c.length;
-    nejhorsi = Math.min(nejhorsi, pod);
-    if (pod < (vedlejsi ? 0.55 : PRAH_CASTI)) chybiCast = true;
+    if (ok / c.length < (vedlejsi ? 0.55 : PRAH_CASTI)) chybiCast = true;
   }
-  nastavPostup(chybiCast ? Math.min(pokryti, PRAH_POKRYTI - 0.05) : pokryti);
-  if (pokryti >= PRAH_POKRYTI && !chybiCast && mimoPodil <= MAX_MIMO) return uspech();
-  neuspech(pokryti, mimoPodil, chybejici, chybiCast && pokryti >= PRAH_POKRYTI);
+  const chybi = chybiCast || maDiru;
+  nastavPostup(chybi ? Math.min(pokryti, PRAH_POKRYTI - 0.05) : pokryti);
+  window.posledniVyhodnoceni = { pokryti, mimoPodil, nejvetsiDira, chybiCast };
+  if (pokryti >= PRAH_POKRYTI && !chybi && mimoPodil <= MAX_MIMO) return uspech();
+  neuspech(pokryti, mimoPodil, chybejici, chybiCast && !maDiru && pokryti >= PRAH_POKRYTI);
 }
-// rozdělí masku písmene na samostatné souvislé části (bez drobných šumů)
-function souvisleCasti(m, w, h) {
+// rozdělí body, pro které platí test, na samostatné souvislé části (bez drobných šumů)
+function souvisleCasti(w, h, test) {
   const videno = new Uint8Array(w * h), casti = [];
   for (let start = 0; start < w * h; start++) {
-    if (videno[start] || m[start * 4 + 3] <= 100) continue;
+    if (videno[start] || !test(start)) continue;
     const zasobnik = [start], cast = []; videno[start] = 1;
     while (zasobnik.length) {
       const i = zasobnik.pop(); cast.push(i);
@@ -273,7 +291,7 @@ function souvisleCasti(m, w, h) {
         const nx = x + dx, ny = y + dy;
         if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
         const j = ny * w + nx;
-        if (!videno[j] && m[j * 4 + 3] > 100) { videno[j] = 1; zasobnik.push(j); }
+        if (!videno[j] && test(j)) { videno[j] = 1; zasobnik.push(j); }
       }
     }
     if (cast.length >= 3) casti.push(cast);
