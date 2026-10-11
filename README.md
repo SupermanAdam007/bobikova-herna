@@ -5,7 +5,7 @@ Učící hry pro děti základní školy s maskotem robotem Bobíkem. Hry si dě
 Adresa po zapnutí GitHub Pages: https://supermanadam007.github.io/bobikova-herna/
 
 ## Hry pro 1. třídu
-- **Robot Bobík** (`robot/`): dítě poskládá kroky (nahoru, dolů, doleva, doprava), čemuž říkáme program, a pak ho spustí. Když robot spadne, program se opraví a jde se dál. 10 úrovní. Po každé úrovni vyskočí dialog s 1 až 3 hvězdičkami (podle počtu chyb), Enter nebo tlačítko pokračuje a po poslední úrovni se hra restartuje. Dialog se dělá voláním `ukazDialog` v `robot/index.html`.
+- **Robot Bobík** (`robot/`): dítě poskládá kroky (nahoru, dolů, doleva, doprava), čemuž říkáme program, a pak ho spustí. Když robot spadne, program se opraví a jde se dál. 10 úrovní, od druhé jsou pole široká s dírami a k cíli vede víc různých cest. Po každé úrovni vyskočí dialog s 1 až 3 hvězdičkami (podle počtu chyb), Enter nebo tlačítko pokračuje a po poslední úrovni se hra restartuje. Dialog se dělá voláním `ukazDialog` v `robot/index.html`.
 - **Abeceda** (`abeceda/`): všech 42 písmen české abecedy včetně `ch`, `ě`, `ř`, `ů`. Procházení abecedy s obrázky, hra "Najdi písmeno" podle hlasu a hra "Obrázek" (S jakým písmenem začíná slovo?). Samohlásky červeně, souhlásky modře.
 - **Co bude dál?** (`rady/`): řady z emoji obrázků (AB, AAB, ABC a další), dítě vybere ze tří možností, co v řadě bude dál. Deset řad, hvězdičky, postupně těžší.
 - **Sčítání** (`scitani/`): sečtení dvou čísel, u menších součtů s obrázky, dítě vybere výsledek ze tří možností. Deset příkladů (od součtu do 4 po součet do 20), hvězdičky.
