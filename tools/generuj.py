@@ -56,8 +56,6 @@ for i, t in enumerate(["Skoro! Zkus to ještě jednou a drž se čáry.", "Ješt
 pridej("psani", "konec", "[very excited, cheering]", "Máš to všechno! Jsi výborný písmenkář!")
 for p in PISMENA:
     pridej("psani", "obtahni_" + p["id"], "", f"Obtáhni písmeno {p['jmeno']}.")
-for s in SLOVA:
-    pridej("psani", "slovo_" + s["id"], "", f"Obtáhni slovo {s['text']}.")
 
 # ---------- Co bude dál? ----------
 pridej("rady", "ahoj", "[cheerfully]", "Ahoj! Podívej se na řadu a vyber, co bude dál.")
