@@ -28,6 +28,7 @@
     <h1>🚕 Taxík na dálnici</h1>
     <span class="hvezdy" id="hvezdy"></span>
     <button class="kulate" id="zvuk" title="Zvuk">🔊</button>
+    <button class="kulate" id="pauza" title="Pauza">⏸️</button>
   </div>
 
   <div id="hlaska">Objeď auta šipkami a přeskoč je tlačítkem Skoč.</div>
@@ -61,6 +62,7 @@ const ZEM = i => SILNICE + PAS * i + 72;       // spodek auta v pruhu i (0 až 2
 const TAXI_X = 150, TAXI_VEL = 84, SKOK_CAS = 1.0, SKOK_VYSKA = 105, SKOK_BEZPECNE = 38;
 const AUTA = [["🚗", 74], ["🚙", 76], ["🚓", 74], ["🚐", 78], ["🚚", 84], ["🚌", 88]];
 
+let pauza = false;
 let kolo = 0, body = 0, chyba = false, stav = "ceka";   // ceka, jede, naraz, cil, konec
 let pruh = 1, pruhCil = 1, z = 0, skokT = -1;           // pruh = plynulá poloha, z = výška nad silnicí
 let auta = [], radky = [], zbyvaRadku = 0, dalsiRadek = 0, rychlost = 0, mezera = 2, drah = 0, cas = 0, narazT = 0;
@@ -104,12 +106,22 @@ function pridejRadek() {
   radky.push(rad); zbyvaRadku--;
 }
 
+function prepniPauzu(chci = !pauza) {
+  if (stav === "konec" || stav === "ceka") return;
+  pauza = chci;
+  $("pauza").textContent = pauza ? "▶️" : "⏸️";
+  if (pauza) Hry.zastav();
+}
+$("pauza").onclick = () => prepniPauzu();
+cv.addEventListener("pointerdown", () => { if (pauza) prepniPauzu(false); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) prepniPauzu(true); });
+
 function skoc() {
-  if (stav !== "jede" || skokT >= 0) return;
+  if (pauza || stav !== "jede" || skokT >= 0) return;
   skokT = 0; Hry.zvuky.klik();
 }
 function posun(d) {
-  if (stav === "konec") return;
+  if (pauza || stav === "konec") return;
   const n = Math.max(0, Math.min(2, pruhCil + d));
   if (n !== pruhCil) { pruhCil = n; Hry.zvuky.klik(); }
 }
@@ -123,10 +135,12 @@ tlacitko("skoc", skoc);
 addEventListener("keydown", e => {
   if (e.key === "ArrowUp" || e.key === "w") posun(-1);
   else if (e.key === "ArrowDown" || e.key === "s") posun(1);
+  else if (e.key === "p" || e.key === "Escape") prepniPauzu();
   else if (e.key === " " || e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); skoc(); }
 });
 
 function krok(dt) {
+  if (pauza) return;
   cas += dt;
   if (stav === "naraz") {
     narazT -= dt;
@@ -242,6 +256,12 @@ function kresli() {
   } });
   polozka.sort((a, b) => a.y - b.y).forEach(p => p.kresli());
   ctx.restore();
+  if (pauza) {
+    ctx.fillStyle = "rgba(20,28,64,.72)"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "bold 64px 'Trebuchet MS', sans-serif"; ctx.fillText("⏸️ Pauza", W / 2, H / 2 - 20);
+    ctx.font = "bold 26px 'Trebuchet MS', sans-serif"; ctx.fillText("Klepni sem a jedeme dál", W / 2, H / 2 + 40);
+  }
 }
 
 let posledni = 0;
