@@ -1,6 +1,6 @@
 # Bobíkova herna
 
-Učící hry pro děti základní školy s maskotem robotem Bobíkem, plus podklady k prezentaci pro první třídu. Hry si děti mohou zahrát doma v prohlížeči (i na mobilu). Rozcestník s obrázky her je v `index.html` a hry jsou rozdělené podle ročníku (1. až 5. třída, zatím jsou hotové hry pro 1. třídu). QR kód vede právě na rozcestník.
+Učící hry pro děti základní školy s maskotem robotem Bobíkem. Hry si děti mohou zahrát doma v prohlížeči (i na mobilu). Rozcestník s obrázky her je v `index.html` a hry jsou rozdělené podle ročníku (1. až 5. třída, zatím jsou hotové hry pro 1. třídu). QR kód vede právě na rozcestník.
 
 Adresa po zapnutí GitHub Pages: https://supermanadam007.github.io/bobikova-herna/
 
@@ -33,8 +33,6 @@ source ~/.zshrc && python3 tools/generuj.py --over     # kontrola přepisem na t
 
 Klíč `ELEVENLABS_APIKEY` se čte jen z prostředí a do souborů se nezapisuje. Skript posílá dotazy po jednom, ElevenLabs při dávce naráz zablokuje bezplatný účet.
 
-## Materiály k prezentaci
-- `plan-prezentace.md`: časový plán na 35 minut
-- `hry.md`: hry bez počítače
-- `bezpecnost.md`: soukromí a bezpečnost her
-- `checklist.md`: co si připravit
+## Další soubory
+- `hry.md`: nápady na další hry do herny
+- Materiály k prezentaci ve škole (plán, checklist, bezpečnost, hry bez počítače, vizitky s QR kódem) jsou v samostatném projektu `ada-skola-prezentace`.
