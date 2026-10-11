@@ -87,6 +87,19 @@ for i, t in enumerate(["Pozor na auta, jedeme dál!", "Pojď, vyrážíme na dal
     pridej("taxi", f"start{i}", "[cheerfully]", t)
 pridej("taxi", "konec", "[very excited, cheering]", "Hotovo! Jsi opravdu skvělý řidič taxíku!")
 
+# ---------- Ohniště ----------
+pridej("ohen", "ahoj", "[calm, warm]", "Ahoj! Posaď se k ohni. Přikládej polínka a hlídej, ať oheň nezhasne.")
+for i, t in enumerate(["Oheň je už docela malý. Přilož mu nějaké polínko.", "Plamínek se zmenšuje a je mu zima. Přilož mu pár polínek."], 1):
+    pridej("ohen", f"malo{i}", "[friendly]", t)
+for i, t in enumerate(["Ouha, to je ale velký oheň! Ještě chvilku a opékáme celý les!", "Pozor, to už je skoro sopka! Bobíkovi se začínají připalovat kalhoty.", "Pomalu, to je moc dřeva najednou! Oheň si z toho udělal vystoupení."], 1):
+    pridej("ohen", f"moc{i}", "[laughing]", t)
+for i, t in enumerate(["Pšššt, oheň zhasl. Je tu tma jako v pytli. Přilož polínko a znovu ho zapal.", "Jejda, oheň zhasl a šel si lehnout. Zapal ho znovu, ať ho nikdo nebudí.", "Oheň je pryč. Bobík by si teď dal opékaný buřt, ale nemá na čem. Zapal ho znovu."], 1):
+    pridej("ohen", f"zhasl{i}", "[sigh, gently]", t)
+for i, t in enumerate(["Hurá, oheň zase hoří! Je hezky teplo.", "Zapáleno! Oheň se probudil a je rád, že tu jsme."], 1):
+    pridej("ohen", f"zapal{i}", "[cheerfully]", t)
+for i, t in enumerate(["To je krásný oheň. Hezky se na něj kouká.", "Tak se mi to líbí. Plamínky tančí a je klid."], 1):
+    pridej("ohen", f"hezky{i}", "[calm, warm]", t)
+
 def multipart(soubor):
     h = "----hranice"
     telo = (f'--{h}\r\nContent-Disposition: form-data; name="model_id"\r\n\r\nscribe_v1\r\n'

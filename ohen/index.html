@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ohniště | Bobíkova herna</title>
+<link rel="icon" type="image/png" href="../obrazky/bobik-ikona.png">
+<link rel="apple-touch-icon" href="../obrazky/bobik-ikona.png">
+<link rel="stylesheet" href="../spolecne/spolecne.css">
+<style>
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  #scena-obal { flex: 1; min-height: 0; position: relative; border-radius: 16px; border: 4px solid #ffe066; overflow: hidden; background: #0b1030; }
+  #scena { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #scena.tres { animation: zatres .4s; }
+  #bobik { position: absolute; left: 3%; bottom: 3%; width: min(22vw, 22dvh, 110px); pointer-events: none; transition: transform .3s; }
+  #bobik img { width: 100%; aspect-ratio: 1; border-radius: 50%; border: 3px solid #ffe066; object-fit: cover; display: block; }
+  #bobik.skok { animation: skok .6s; }
+  #bobik.smutny img { filter: grayscale(.6) brightness(.7); }
+  #bobik.horko img { filter: sepia(1) saturate(4) hue-rotate(-30deg); }
+  #bublina {
+    position: absolute; left: 50%; bottom: 100%; transform: translate(-30%, -4px) scale(0); transform-origin: 20% 100%;
+    background: #fff; color: #1f2a5a; border-radius: 16px; padding: 2px 10px; font-size: min(7dvh, 11vw); line-height: 1.2;
+    transition: transform .2s; white-space: nowrap;
+  }
+  #bublina.vidit { transform: translate(-30%, -4px) scale(1); }
+  @keyframes skok { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-22px) rotate(-6deg); } }
+  #pridej { flex: none; font-size: min(5dvh, 7vw); padding: min(2.2dvh, 14px) 8px; background: #e8590c; border: 4px solid #fff; border-radius: 18px; box-shadow: 0 5px 0 rgba(0,0,0,.4); }
+  #pridej:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+</style>
+</head>
+<body>
+  <div id="top">
+    <a class="domu" href="../index.html"><img class="logo" src="../obrazky/bobik.jpg" alt=""> Herna</a>
+    <h1>🔥 Ohniště</h1>
+    <span class="hvezdy" id="hvezdy">🪵 0</span>
+    <button class="kulate" id="zvuk" title="Zvuk">🔊</button>
+  </div>
+
+  <div id="hlaska">Přikládej polínka a hlídej, ať oheň nezhasne.</div>
+
+  <main>
+    <div id="scena-obal">
+      <canvas id="scena"></canvas>
+      <div id="bobik"><div id="bublina"></div><img src="../obrazky/bobik.jpg" alt="Bobík"></div>
+    </div>
+    <button class="tlacitko" id="pridej">🪵 Přiložit polínko</button>
+  </main>
+
+<script src="../spolecne/spolecne.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const jmena = ["ahoj", "malo1", "malo2", "moc1", "moc2", "moc3", "zhasl1", "zhasl2", "zhasl3", "zapal1", "zapal2", "hezky1", "hezky2"];
+Hry.nactiHlas("zvuky/", jmena).then(() => { zacatek(); mluv("ahoj", 200); });
+Hry.nastavTlacitkoZvuku($("zvuk"));
+
+const MAX = 12;          // nad touto hodnotou se oheň "přežene"
+let f = 6;               // kolik paliva v ohni zbývá
+let fs = 6;              // zobrazená (vyhlazená) hodnota
+let burst = false;       // po přehnání oheň rychle klesá
+let vyhasl = false, ember = 0, polenek = 0;
+let mluvi = false, posledniMalo = 0, posledniHezky = 0, hezkyOd = 0;
+
+const cv = $("scena"), ctx = cv.getContext("2d");
+let W = 300, H = 300, S = 1, dpr = 1;
+function rozmer() {
+  const r = cv.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 2);
+  W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr;
+  S = Math.max(.5, Math.min(H / 600, W / 420, 1.4));
+}
+addEventListener("resize", rozmer);
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const plameny = [], jiskry = [], koure = [], letajici = [], padajici = [], zzz = [];
+const hvezdy = Array.from({ length: 50 }, () => ({ x: Math.random(), y: Math.random() * .5, f: rnd(0, 6) }));
+const cx = () => W * .5, zakladna = () => H * .76;
+
+// ---------- hlas a bublina Bobíka ----------
+async function mluv(jmeno, delay = 0) {
+  if (mluvi) return;
+  mluvi = true;
+  try { await Hry.rekni(jmeno, { delay }); } finally { mluvi = false; }
+}
+let bublinaCas = 0;
+function nalada(emoji, ms = 2200, trida = "") {
+  const b = $("bublina"), bo = $("bobik");
+  b.textContent = emoji; b.classList.add("vidit");
+  bo.className = trida;
+  clearTimeout(bublinaCas);
+  bublinaCas = setTimeout(() => { b.classList.remove("vidit"); bo.className = ""; }, ms);
+}
+function hlaska(t, cls = "") { const h = $("hlaska"); h.textContent = t; h.className = cls; }
+
+// ---------- akce ----------
+function pridej() {
+  Hry.zvuky.klik();
+  padajici.push({ x: cx() + rnd(-20, 20) * S, y: -30, vy: 0, rot: rnd(-1, 1), vr: rnd(-4, 4), cil: zakladna() - 12 * S });
+  $("pridej").textContent = "🪵 Přiložit polínko";
+}
+
+function pristalo(p) {
+  polenek++; $("hvezdy").textContent = "🪵 " + polenek;
+  vybuch(12, 1);
+  if (vyhasl) {                         // znovu zapálit
+    vyhasl = false; f = 3; ember = 0;
+    hlaska("Hurá, oheň zase hoří!", "dobre");
+    nalada("😊", 2500, "skok");
+    mluv("zapal", 150);
+    return;
+  }
+  f += 2;
+  if (f > MAX) prehnano();
+  else hlaska("Oheň je " + (f < 3 ? "malý." : f < 7 ? "příjemný." : "velký."));
+}
+
+function prehnano() {
+  f = MAX; burst = true; fs = Math.max(fs, MAX + 3);
+  vybuch(70, 2.4);
+  const veci = ["🌭", "🍡", "🧦", "🎩", "🥔", "🩴", "🍞"];
+  for (let i = 0; i < 3; i++) letajici.push({
+    x: cx() + rnd(-20, 20), y: zakladna() - 40 * S, vx: rnd(-170, 170) * S, vy: -rnd(480, 720) * S,
+    rot: 0, vr: rnd(-8, 8), e: veci[(Math.random() * veci.length) | 0]
+  });
+  cv.classList.remove("tres"); void cv.offsetWidth; cv.classList.add("tres");
+  nalada("🥵", 3500, "horko");
+  hlaska("To je moc dřeva!", "spatne");
+  Hry.zvuky.spatne();
+  mluv("moc", 100);
+}
+
+function zhasni() {
+  vyhasl = true; f = 0; burst = false; ember = 1;
+  hlaska("Oheň zhasl. Přilož polínko a zapal ho znovu.", "spatne");
+  nalada("🥶", 6000, "smutny");
+  $("pridej").textContent = "🪵 Přiložit a zapálit";
+  mluv("zhasl", 600);
+}
+
+function vybuch(n, sila) {
+  for (let i = 0; i < n; i++) jiskry.push({
+    x: cx() + rnd(-30, 30) * S, y: zakladna() - rnd(0, 30) * S,
+    vx: rnd(-90, 90) * S * sila, vy: -rnd(100, 260) * S * sila, zivot: rnd(.8, 2), vek: 0
+  });
+}
+
+// ---------- kreslení ----------
+function pozadi() {
+  const svetlo = Math.min(1, fs / 10);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgb(${6 + 10 * svetlo},${9 + 12 * svetlo},${34 + 22 * svetlo})`);
+  g.addColorStop(1, `rgb(${16 + 40 * svetlo},${14 + 20 * svetlo},${40 + 6 * svetlo})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const t = performance.now() / 1000;
+  ctx.fillStyle = "#fff";
+  hvezdy.forEach(s => { ctx.globalAlpha = .35 + .35 * Math.sin(t * 1.5 + s.f); ctx.fillRect(s.x * W, s.y * H, 2 * S + 1, 2 * S + 1); });
+  ctx.globalAlpha = 1;
+  ctx.font = (34 * S) + "px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("🌙", W * .82, H * .12);
+  // siluety stromů
+  ctx.fillStyle = "#070a1e";
+  for (let i = 0; i < 9; i++) {
+    const x = (i + .5) / 9 * W, v = (70 + (i * 37 % 50)) * S;
+    ctx.beginPath(); ctx.moveTo(x - 28 * S, zakladna() - 20 * S); ctx.lineTo(x, zakladna() - 20 * S - v); ctx.lineTo(x + 28 * S, zakladna() - 20 * S); ctx.fill();
+  }
+  const zem = ctx.createLinearGradient(0, zakladna() - 20 * S, 0, H);
+  zem.addColorStop(0, "#1b1f3d"); zem.addColorStop(1, "#10122b");
+  ctx.fillStyle = zem; ctx.fillRect(0, zakladna() - 20 * S, W, H);
+  // záře
+  const r = (60 + fs * 38) * S + ember * 40 * S;
+  const a = Math.min(.5, .04 + fs * .035 + ember * .08);
+  const gl = ctx.createRadialGradient(cx(), zakladna() - 30 * S, 0, cx(), zakladna() - 30 * S, r * 1.6);
+  gl.addColorStop(0, `rgba(255,150,50,${a})`); gl.addColorStop(1, "rgba(255,120,30,0)");
+  ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+}
+
+function kmen(x, y, uhel, delka, zhar) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(uhel);
+  ctx.fillStyle = zhar > .05 ? `rgb(${90 + 120 * zhar},${58 + 20 * zhar},${30})` : "#5b3a1e";
+  const v = 18 * S;
+  ctx.beginPath(); ctx.roundRect(-delka / 2, -v / 2, delka, v, v / 2); ctx.fill();
+  ctx.fillStyle = "#c9955c"; ctx.beginPath(); ctx.ellipse(delka / 2 - 3 * S, 0, 5 * S, v / 2 - 2 * S, 0, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+function polena() {
+  const y = zakladna() - 4 * S, d = 130 * S, zh = Math.max(ember, Math.min(1, fs / 3)) * .6;
+  kmen(cx() - 8 * S, y, .25, d, zh);
+  kmen(cx() + 8 * S, y, -.25, d, zh);
+}
+function kameny() {
+  ctx.fillStyle = "#7d7a8c";
+  const n = 14;
+  for (let i = 0; i < n; i++) {
+    const u = i / n * Math.PI * 2, x = cx() + Math.cos(u) * 105 * S, y = zakladna() + 6 * S + Math.sin(u) * 22 * S;
+    if (Math.sin(u) < 0) continue;
+    ctx.fillStyle = i % 2 ? "#8e8aa0" : "#6f6c80";
+    ctx.beginPath(); ctx.ellipse(x, y, 17 * S, 12 * S, 0, 0, 7); ctx.fill();
+  }
+}
+
+function aktualizuj(dt) {
+  // palivo
+  if (!vyhasl) {
+    f -= (.15 + .015 * f) * (burst ? 4 : 1) * dt;
+    if (burst && f < MAX - 3) burst = false;
+    if (f <= 0) zhasni();
+  }
+  fs += (f - fs) * Math.min(1, dt * 3);
+  if (vyhasl) { fs = Math.max(0, fs - dt * 2); ember = Math.max(0, ember - dt / 25); }
+
+  // hlas podle nálady ohně
+  const ted = performance.now();
+  if (!vyhasl && f < 2.2 && ted - posledniMalo > 30000) { posledniMalo = ted; mluv("malo"); nalada("🥺", 2500); }
+  if (!vyhasl && f > 4 && f < 9) {
+    if (!hezkyOd) hezkyOd = ted;
+    if (ted - hezkyOd > 15000 && ted - posledniHezky > 45000) { posledniHezky = ted; mluv("hezky"); nalada("😌", 3000); hezkyOd = 0; }
+  } else hezkyOd = 0;
+
+  // plameny
+  if (fs > .05) {
+    const n = (22 + fs * 9) * dt + Math.random();
+    for (let i = 0; i < n; i++) {
+      const sir = (9 + fs * 5.5) * S, x = cx() + (Math.random() + Math.random() - 1) * sir;
+      plameny.push({ x, y: zakladna() - 6 * S, vx: -(x - cx()) * .9 + rnd(-12, 12), vy: -(75 + fs * 34 + rnd(0, 50)) * S,
+        zivot: rnd(.5, 1), vek: 0, r: (7 + fs * 2.2 + rnd(0, 6)) * S, f: rnd(0, 6) });
+    }
+    if (Math.random() < fs * .8 * dt) jiskry.push({ x: cx() + rnd(-20, 20) * S, y: zakladna() - 40 * S, vx: rnd(-40, 40) * S, vy: -rnd(80, 200) * S, zivot: rnd(1, 2), vek: 0 });
+  }
+  // kouř při slabém ohni nebo uhlících
+  if ((vyhasl && ember > .02) || (!vyhasl && fs < 1.5)) {
+    if (Math.random() < 3 * dt) koure.push({ x: cx() + rnd(-15, 15) * S, y: zakladna() - 14 * S, vx: rnd(-8, 8), vy: -rnd(25, 45) * S, zivot: rnd(2, 3.5), vek: 0, r: rnd(8, 14) * S });
+  }
+  if (vyhasl && Math.random() < .5 * dt) zzz.push({ x: cx() + rnd(-30, 30) * S, y: zakladna() - 30 * S, vek: 0, zivot: 3 });
+
+  for (const arr of [plameny, jiskry, koure, zzz]) {
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const p = arr[i]; p.vek += dt;
+      if (p.vek >= p.zivot) { arr.splice(i, 1); continue; }
+      if (p.vx !== undefined) p.x += (p.vx + (arr === plameny ? Math.sin(p.vek * 9 + p.f) * 16 : 0)) * dt;
+      if (p.vy !== undefined) p.y += p.vy * dt; else p.y -= 28 * S * dt;
+      if (arr === jiskry) p.vy += 60 * S * dt;
+    }
+  }
+  for (let i = padajici.length - 1; i >= 0; i--) {
+    const p = padajici[i]; p.vy += 1500 * S * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+    if (p.y >= p.cil) { padajici.splice(i, 1); pristalo(p); }
+  }
+  for (let i = letajici.length - 1; i >= 0; i--) {
+    const p = letajici[i]; p.vy += 900 * S * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+    if (p.y > H + 60) letajici.splice(i, 1);
+  }
+}
+
+function kresli() {
+  pozadi();
+  polena();
+  // žhavé uhlíky
+  if (ember > 0 || fs > .05) {
+    const a = Math.max(ember * .7, Math.min(.9, fs / 3));
+    ctx.fillStyle = `rgba(255,${80 + 60 * a},20,${a})`;
+    ctx.beginPath(); ctx.ellipse(cx(), zakladna() + 2 * S, 50 * S, 9 * S, 0, 0, 7); ctx.fill();
+  }
+  // kouř
+  koure.forEach(p => {
+    const k = p.vek / p.zivot; ctx.fillStyle = `rgba(190,190,205,${.28 * (1 - k)})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + k * 2.2), 0, 7); ctx.fill();
+  });
+  // plameny
+  ctx.globalCompositeOperation = "lighter";
+  plameny.forEach(p => {
+    const k = p.vek / p.zivot, r = p.r * (1 - k * .85);
+    const bar = k < .2 ? [255, 190, 70] : k < .6 ? [255, 140, 30] : [200, 40, 15];
+    ctx.fillStyle = `rgba(${bar[0]},${bar[1]},${bar[2]},${.24 * Math.pow(1 - k, 1.1)})`;
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 1.5, 0, 0, 7); ctx.fill();
+  });
+  ctx.globalCompositeOperation = "source-over";
+  // jiskry
+  jiskry.forEach(p => { ctx.fillStyle = `rgba(255,${190 + 50 * (1 - p.vek / p.zivot) | 0},80,${1 - p.vek / p.zivot})`; ctx.fillRect(p.x, p.y, 3 * S + 1, 3 * S + 1); });
+  kameny();
+  ctx.font = (30 * S) + "px serif";
+  padajici.forEach(p => { kmen(p.x, p.y, p.rot, 90 * S, 0); });
+  ctx.font = (36 * S) + "px serif";
+  letajici.forEach(p => { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillText(p.e, 0, 0); ctx.restore(); });
+  ctx.font = (24 * S) + "px serif";
+  zzz.forEach(p => { ctx.globalAlpha = 1 - p.vek / p.zivot; ctx.fillText("💤", p.x + Math.sin(p.vek * 3) * 8, p.y); });
+  ctx.globalAlpha = 1;
+}
+
+let posledni = 0, bezi = false;
+function smycka(t) {
+  const dt = Math.min(.05, (t - posledni) / 1000 || .016); posledni = t;
+  aktualizuj(dt); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); kresli();
+  requestAnimationFrame(smycka);
+}
+function zacatek() { if (bezi) return; bezi = true; rozmer(); requestAnimationFrame(smycka); }
+
+$("pridej").onclick = pridej;
+addEventListener("keydown", e => { if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); if (!e.repeat) pridej(); } });
+rozmer();
+</script>
+</body>
+</html>
