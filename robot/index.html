@@ -38,10 +38,8 @@
     pointer-events: none; z-index: 5;
   }
   #robotInner { position: relative; width: 100%; height: 100%; transition: transform .35s ease; display:flex; align-items:center; justify-content:center; font-size: calc(var(--cell) * .62); }
-  #nose {
-    position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
-    width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 15px solid #ff4d6d;
-  }
+  #bobikKruh { width: 92%; height: 92%; border-radius: 50%; border: 3px solid #ffe066; overflow: hidden; background: #1f2a5a; box-shadow: 0 3px 0 rgba(0,0,0,.45); display: block; }
+  #bobikKruh img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35) translateY(2%); display: block; }
   #marker {
     position: absolute; width: var(--cell); height: var(--cell); border: 6px solid #d6336c; border-radius: 12px; background: rgba(255,255,255,.35);
     box-shadow: 0 0 0 3px #fff, 0 0 0 6px #000;
@@ -344,7 +342,8 @@ const robotEl = document.createElement("div");
 robotEl.id = "robot";
 const markerEl = document.createElement("div");
 markerEl.id = "marker";
-robotEl.innerHTML = '<div id="robotInner"><div id="nose"></div>🤖</div>';
+// Robot je náš Bobík v kulatém rámečku. Neotáčí se, ať děti nepletou, kam se dívá.
+robotEl.innerHTML = '<div id="robotInner"><span id="bobikKruh"><img src="../obrazky/bobik.jpg" alt="Bobík"></span></div>';
 
 function tile(x, y) { return LEVELS[level].map[y][x]; }
 function find(ch) {
@@ -397,7 +396,6 @@ function placeRobot() {
   const cell = cs.offsetWidth, gap = 3, pad = 8;
   robotEl.style.left = (pad + robot.x * (cell + gap)) + "px";
   robotEl.style.top = (pad + robot.y * (cell + gap)) + "px";
-  robotEl.firstChild.style.transform = "rotate(" + angle + "deg)";
 }
 function resetRobot(instant) {
   const s = find("S");
