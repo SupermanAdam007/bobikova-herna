@@ -10,51 +10,45 @@
 <meta name="description" content="Hry pro děti na prvním stupni: programování, abeceda a psaní českých písmen.">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; font-family: "Trebuchet MS", "Comic Sans MS", sans-serif; background: #1f2a5a; color: #fff;
-    height: 100dvh; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 10px;
+    min-height: 100dvh; display: flex; flex-direction: column; gap: 10px; padding: 10px 10px 0;
   }
   #hlavicka { flex: none; display: flex; align-items: center; justify-content: center; gap: 12px; }
-  .maskot { height: clamp(64px, 12dvh, 120px); width: clamp(64px, 12dvh, 120px); border-radius: 50%; border: 4px solid #ffe066; object-fit: cover; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
-  h1 { margin: 0; font-size: clamp(24px, 5.5dvh, 46px); }
-  p.podtitul { margin: 2px 0 0; font-size: clamp(14px, 2.6dvh, 22px); opacity: .95; }
-  main#hry { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; grid-auto-rows: 1fr; gap: 10px; max-width: 1100px; width: 100%; margin: 0 auto; }
+  .maskot { height: 72px; width: 72px; border-radius: 50%; border: 4px solid #ffe066; object-fit: cover; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
+  h1 { margin: 0; font-size: clamp(24px, 7vw, 40px); }
+  p.podtitul { margin: 2px 0 0; font-size: clamp(13px, 3.4vw, 20px); opacity: .95; }
+  /* Obsah se může posouvat: dlaždice mají minimální výšku a stránka se při nedostatku místa rolovat */
+  main#hry { flex: 1 0 auto; display: grid; grid-template-columns: 1fr; grid-auto-rows: minmax(124px, auto); gap: 10px; max-width: 1100px; width: 100%; margin: 0 auto; }
   a.hra {
-    display: flex; flex-direction: row; align-items: stretch; min-height: 0; background: #fff; color: #1f2a5a; text-decoration: none;
-    border-radius: 20px; overflow: hidden; border: 4px solid #ffe066; box-shadow: 0 6px 0 rgba(0,0,0,.4); transition: transform .1s;
+    display: flex; flex-direction: row; align-items: stretch; min-height: 124px; background: #fff; color: #1f2a5a; text-decoration: none;
+    border-radius: 18px; overflow: hidden; border: 3px solid #ffe066; box-shadow: 0 5px 0 rgba(0,0,0,.4); transition: transform .1s;
   }
-  a.hra:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
-  a.hra img { flex: 0 0 48%; min-width: 0; width: 48%; height: 100%; object-fit: cover; display: block; background: #fff; }
+  a.hra:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  a.hra img { flex: 0 0 42%; min-width: 0; width: 42%; height: auto; object-fit: cover; display: block; background: #fff; }
   .text { flex: 1; min-width: 0; padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-  .text h2 { margin: 0; font-size: clamp(20px, 4.4dvh, 38px); }
-  .text span { font-size: clamp(13px, 2.4dvh, 20px); line-height: 1.2; }
-  .text b { align-self: flex-start; background: #e03131; color: #fff; border-radius: 14px; padding: 4px 14px; font-size: clamp(14px, 2.6dvh, 22px); margin-top: 2px; }
-  @media (orientation: landscape) and (min-width: 700px) {
-    main#hry { grid-template-columns: repeat(var(--sloupce, 3), 1fr); grid-auto-rows: auto; align-content: center; align-items: start; }
-    a.hra { flex-direction: column; }
-    a.hra img { flex: 0 1 auto; width: 100%; height: auto; max-height: 62%; aspect-ratio: 3 / 2; min-height: 0; object-fit: cover; }
-    .text { flex: none; }
-    .text span { min-height: 2.4em; }
-  }
+  .text h2 { margin: 0; font-size: 20px; line-height: 1.1; }
+  .text span { font-size: 14px; line-height: 1.25; }
+  .text b { align-self: flex-start; background: #e03131; color: #fff; border-radius: 14px; padding: 4px 14px; font-size: 15px; margin-top: 3px; }
   #tridy { flex: none; display: flex; gap: 6px; justify-content: center; max-width: 1100px; width: 100%; margin: 0 auto; }
   #tridy button {
-    flex: 1; max-width: 120px; border: 3px solid transparent; border-radius: 14px; padding: 6px 2px; font-family: inherit; font-weight: bold;
-    font-size: clamp(14px, 2.8dvh, 22px); background: #3b4a8f; color: #fff; cursor: pointer; line-height: 1.1;
+    flex: 1; max-width: 120px; border: 3px solid transparent; border-radius: 14px; padding: 6px 0; font-family: inherit; font-weight: bold;
+    font-size: 15px; background: #3b4a8f; color: #fff; cursor: pointer; line-height: 1.1; white-space: nowrap;
   }
-  #tridy button small { display: block; font-size: .62em; font-weight: normal; opacity: .9; }
+  #tridy button small { display: block; font-size: 10px; font-weight: normal; opacity: .9; }
   #tridy button.aktivni { background: #fff; color: #1f2a5a; border-color: #ffe066; }
   #tridy button.prazdna:not(.aktivni) { opacity: .75; }
   .brzy {
-    grid-column: 1 / -1; grid-row: 1 / -1; background: #3b4a8f; border: 4px dashed #ffe066; border-radius: 20px; padding: 16px; text-align: center;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: clamp(16px, 3.2dvh, 26px);
+    grid-column: 1 / -1; min-height: 220px; background: #3b4a8f; border: 4px dashed #ffe066; border-radius: 20px; padding: 16px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 18px;
   }
-  .brzy .velke { font-size: clamp(48px, 12dvh, 110px); }
-  .brzy button { border: none; border-radius: 16px; padding: 10px 22px; font-size: clamp(16px, 3dvh, 24px); font-family: inherit; font-weight: bold; background: #e03131; color: #fff; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
+  .brzy .velke { font-size: 64px; }
+  .brzy button { border: none; border-radius: 16px; padding: 10px 22px; font-size: 18px; font-family: inherit; font-weight: bold; background: #e03131; color: #fff; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
   footer { flex: none; text-align: center; font-size: 12px; opacity: .8; }
   #rodice {
-    flex: none; margin: 4px -10px -10px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: #141c40; border-top: 2px solid #3b4a8f;
-    text-align: center; font-size: clamp(12px, 2dvh, 16px); color: #c9d0f2;
+    flex: none; margin: 0 -10px; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); background: #141c40; border-top: 2px solid #3b4a8f;
+    text-align: center; font-size: 14px; color: #c9d0f2;
   }
   #rodice button { font: inherit; font-weight: bold; color: #ffe066; background: none; border: none; padding: 0; text-decoration: underline; cursor: pointer; }
   #zavora { position: fixed; inset: 0; background: rgba(10,14,38,.85); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
@@ -67,42 +61,38 @@
   #zavora .tlacitka button { font: inherit; font-weight: bold; font-size: 16px; border: none; border-radius: 14px; padding: 10px 18px; cursor: pointer; background: #e03131; color: #fff; }
   #zavora .tlacitka button.sede { background: #dfe3f5; color: #1f2a5a; }
   #zavora .chyba { color: #c92a2a; font-weight: bold; min-height: 1.3em; }
-  /* Mobil na výšku: vše menší a kompaktní, ať se tři dlaždice vejdou celé */
-  @media (max-width: 699px) and (orientation: portrait) {
-    body { gap: 6px; padding: 8px; }
+  /* Mobil na šířku a nízké obrazovky: kompaktní hlavička, dlaždice ve dvou nebo třech sloupcích, stránka se posouvá */
+  @media (orientation: landscape) and (min-width: 560px) {
+    body { gap: 8px; padding: 8px 12px 0; }
     #hlavicka { gap: 10px; }
-    .maskot { height: 56px; width: 56px; border-width: 3px; }
-    h1 { font-size: clamp(22px, 7vw, 30px); white-space: nowrap; }
-    p.podtitul { font-size: 13px; margin-top: 0; }
-    #tridy { gap: 4px; }
-    #tridy button { font-size: 15px; padding: 4px 0; border-width: 2px; border-radius: 12px; white-space: nowrap; }
-    #tridy button small { font-size: 10px; }
-    main#hry { gap: 8px; }
-    a.hra { border-width: 3px; border-radius: 16px; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
-    a.hra img { flex-basis: 42%; width: 42%; }
-    .text { padding: 4px 10px; gap: 2px; }
-    .text h2 { font-size: 19px; line-height: 1.1; }
-    .text span { font-size: 12.5px; line-height: 1.2; }
-    .text b { font-size: 13px; padding: 3px 12px; margin-top: 3px; }
-    .brzy { font-size: 16px; }
-    footer { font-size: 11px; }
-    #rodice { font-size: 12px; padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+    .maskot { height: 48px; width: 48px; border-width: 3px; }
+    h1 { font-size: 24px; }
+    p.podtitul { display: none; }
+    #tridy button { padding: 4px 0; font-size: 14px; }
+    main#hry { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-rows: minmax(120px, auto); }
+    a.hra img { flex-basis: 40%; width: 40%; }
+    .text h2 { font-size: 18px; }
+    .text span { font-size: 13px; }
   }
-  /* Velké obrazovky: pevné dlaždice uprostřed, ne roztažené přes celou šířku */
+  /* Telefon na výšku: dlaždice pod sebou, obrázek vlevo */
+  @media (max-width: 699px) and (orientation: portrait) {
+    main#hry { grid-template-columns: 1fr; }
+  }
+  /* Tablety a počítače: dlaždice s obrázkem nahoře */
   @media (min-width: 900px) and (min-height: 560px) {
-    main#hry { grid-template-columns: repeat(auto-fit, 340px); grid-auto-rows: auto; justify-content: center; align-content: center; align-items: start; gap: 24px; max-width: 1200px; }
-    a.hra { width: 340px; }
-    a.hra img { max-height: none; }
-    .text { padding: 14px 16px 18px; gap: 6px; }
+    body { gap: 14px; padding-top: 18px; }
+    main#hry { grid-template-columns: repeat(auto-fit, 340px); grid-auto-rows: auto; justify-content: center; align-content: start; align-items: start; gap: 24px; max-width: 1200px; }
+    a.hra { width: 340px; flex-direction: column; }
+    a.hra img { flex: none; width: 100%; height: auto; aspect-ratio: 3 / 2; }
+    .text { padding: 14px 16px 18px; gap: 6px; flex: none; }
     .text h2 { font-size: 26px; }
-    .text span { font-size: 16px; }
-    .text span { min-height: 2.4em; }
+    .text span { font-size: 16px; min-height: 2.4em; }
     .text b { font-size: 18px; margin-top: 8px; }
-    .brzy { grid-column: 1 / -1; width: min(560px, 100%); justify-self: center; grid-row: auto; padding: 32px; }
+    .brzy { width: min(560px, 100%); justify-self: center; padding: 32px; }
     #tridy button { font-size: 18px; }
     .maskot { height: 96px; width: 96px; }
     h1 { font-size: 44px; }
-    p.podtitul { font-size: 20px; }
+    p.podtitul { display: block; font-size: 20px; }
   }
 </style>
 </head>
