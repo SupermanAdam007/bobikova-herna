@@ -391,12 +391,16 @@ function loadLevel(n) {
   renderProgram(); renderLevels(); renderStars(); setEnabled(true);
 }
 
-function placeRobot() {
-  const cs = board.children[0];
-  const cell = cs.offsetWidth, gap = 3, pad = 8;
-  robotEl.style.left = (pad + robot.x * (cell + gap)) + "px";
-  robotEl.style.top = (pad + robot.y * (cell + gap)) + "px";
+// Pozice se bere ze skutečného políčka v mřížce (ne z počítaných pixelů), takže Bobík nikdy neujede ze středu.
+function umistiNa(el, x, y) {
+  const c = board.children[y * W + x];
+  if (!c) return;
+  const a = c.getBoundingClientRect(), b = board.getBoundingClientRect();   // zlomky pixelů, žádné zaokrouhlení
+  el.style.width = a.width + "px"; el.style.height = a.height + "px";
+  el.style.left = (a.left - b.left - board.clientLeft) + "px"; el.style.top = (a.top - b.top - board.clientTop) + "px";
 }
+function placeRobot() { try { umistiNa(robotEl, robot.x, robot.y); } catch (e) {} }
+
 function resetRobot(instant) {
   const s = find("S");
   robot = { x: s.x, y: s.y, dir: LEVELS[level].dir };
@@ -419,9 +423,7 @@ function simulate(prog) {
 function updateMarker() {
   const r = simulate(program);
   if (running || !program.length || r.fell >= 0 || tile(r.x, r.y) === "G") { markerEl.style.display = "none"; return; }
-  const cell = board.children[0].offsetWidth;
-  markerEl.style.left = (8 + r.x * (cell + 3)) + "px";
-  markerEl.style.top = (8 + r.y * (cell + 3)) + "px";
+  umistiNa(markerEl, r.x, r.y);
   markerEl.style.display = "block";
 }
 
@@ -558,6 +560,8 @@ $("mute").onclick = () => { muted = !muted; if (muted) Hry.zastav(); $("mute").t
 // Nejdřív se načtou všechny hlasy (obrazovka "Bobík se připravuje"), pak robot pozdraví.
 Hry.nactiHlas("zvuky/", VOICE_FILES).then(() => { if (level === 0 && !program.length) voice("ahoj", { delay: 200 }); });
 window.addEventListener("resize", () => { placeRobot(); updateMarker(); });
+// Rozložení se může změnit i bez změny okna (např. zalomení programu), proto hlídáme velikost hrací plochy.
+new ResizeObserver(() => { placeRobot(); updateMarker(); }).observe(board);
 
 // Ovládání z klávesnice: šipky přidají krok, Enter spustí program, Backspace smaže poslední krok.
 const KLAVESY = { ArrowUp: ".cmd.U", ArrowLeft: ".cmd.L", ArrowDown: ".cmd.D", ArrowRight: ".cmd.R", Enter: "#run", Backspace: "#undo" };
