@@ -10,7 +10,7 @@ Adresa po zapnutí GitHub Pages: https://supermanadam007.github.io/bobikova-hern
 - **Co bude dál?** (`rady/`): řady z emoji obrázků (AB, AAB, ABC a další), dítě vybere ze tří možností, co v řadě bude dál. Deset řad, hvězdičky, postupně těžší.
 - **Sčítání** (`scitani/`): sečtení dvou čísel, u menších součtů s obrázky, dítě vybere výsledek ze tří možností. Deset příkladů (od součtu do 4 po součet do 20), hvězdičky.
 - **Taxík na dálnici** (`taxi/`): taxík jede po třípruhové dálnici, šipkami mění pruh a tlačítkem Skoč přeskakuje auta. Deset úseků, každý těžší, hvězdička za úsek bez nárazu, pauza a osmibitová hudba generovaná v prohlížeči (vypne se tlačítkem zvuku).
-- **Psaní** (`psani/`): obtahování psacích písmen české abecedy prstem (malá a velká) podle vzorových listů ze stránek [pisanka.cz](https://pisanka.cz/), ze kterých jsou odvozené osové dráhy tahů (`psani/pismena-vektor.js`, háčky a čárky jsou doplněné ručně). Hra vyhodnotí, kolik je obtaženo, a ukáže žlutě, co chybí.
+- **Psaní** (`psani/`): obtahování psacích písmen české abecedy prstem (malá a velká) podle vzorových listů ze stránek [pisanka.cz](https://pisanka.cz/): písmena jsou obrázkové masky vyříznuté z těchto listů (`psani/pismena/`, popis v `psani/pismena-data.js`), háčky a čárky jsou doplněné ručně. Hra vyhodnotí, kolik je obtaženo, a ukáže žlutě, co chybí.
 
 Hry nic neodesílají na internet, nemají přihlášení ani reklamy. Jediné, co se ukládá, je v prohlížeči dítěte hvězdička u hotových písmen.
 
