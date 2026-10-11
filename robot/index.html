@@ -142,9 +142,9 @@
       <div id="program"></div>
 
       <div id="buttons">
-        <button class="btn" id="undo">⌫ Zpět</button>
+        <button class="btn" id="undo" title="Klávesa Backspace">⌫ Zpět</button>
         <button class="btn" id="clear">🗑 Smazat</button>
-        <button class="btn" id="run">▶ Spustit program</button>
+        <button class="btn" id="run" title="Klávesa Enter">▶ Spustit program</button>
       </div>
       <button class="btn" id="next">Další úroveň ➡️</button>
     </div>
@@ -493,6 +493,17 @@ $("mute").onclick = () => { muted = !muted; if (muted) Hry.zastav(); $("mute").t
 // Nejdřív se načtou všechny hlasy (obrazovka "Bobík se připravuje"), pak robot pozdraví.
 Hry.nactiHlas("zvuky/", VOICE_FILES).then(() => { if (level === 0 && !program.length) voice("ahoj", { delay: 200 }); });
 window.addEventListener("resize", () => { placeRobot(); updateMarker(); });
+
+// Ovládání z klávesnice: šipky přidají krok, Enter spustí program, Backspace smaže poslední krok.
+const KLAVESY = { ArrowUp: ".cmd.U", ArrowLeft: ".cmd.L", ArrowDown: ".cmd.D", ArrowRight: ".cmd.R", Enter: "#run", Backspace: "#undo" };
+document.addEventListener("keydown", e => {
+  const cil = KLAVESY[e.key];
+  if (!cil || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (document.querySelector('body > div[style*="z-index:1000"]')) return; // běží načítací obrazovka
+  e.preventDefault();                // žádné posouvání stránky ani aktivace tlačítka, které má právě fokus
+  if (e.repeat && e.key !== "Backspace") return;
+  document.querySelector(cil).click(); // zakázané tlačítko (během běhu programu) kliknutí ignoruje
+});
 loadLevel(0);
 </script>
 </body>

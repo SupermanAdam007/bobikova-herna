@@ -59,6 +59,7 @@ const Hry = (() => {
           ov.querySelector(".c").innerHTML = '<button type="button" style="font:inherit;font-weight:bold;font-size:clamp(22px,5dvh,34px);background:#e03131;color:#fff;border:none;border-radius:22px;padding:12px 40px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.4)">Hrát ▶</button>';
           ov.querySelector(".p").parentNode.style.display = "none";
           ov.querySelector("button").onclick = () => { odemkni(); ov.remove(); resolve(); };
+          ov.querySelector("button").focus(); // na počítači stačí stisknout Enter
         });
       },
     };
